@@ -59,7 +59,7 @@ while getopts "h?q:j:u:i:k:t:n?m?o?s?p:r:l:" opt; do
         ;;
     r)  TAGNAME="$OPTARG"
         ;;
-    l)  EXTRA_CMAKE_FLAGS+=("$OPTARG");;
+    l)  EXTRA_CMAKE_FLAGS+=("$OPTARG")
         ;;
     esac
 done
