@@ -51,6 +51,8 @@ on:
 permissions:
   id-token: write
   contents: read
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 jobs:
   build:
     runs-on: ubuntu-latest
