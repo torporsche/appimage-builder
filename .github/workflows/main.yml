@@ -463,8 +463,10 @@ jobs:
         ./ghr*/ghr -t ${{ secrets.GITHUB_TOKEN }} -u ${{ steps.setup-vars.outputs.owner }} -r ${{ steps.setup-vars.outputs.repo }} ${{ !(github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[DRAFT]')) && '-draft ' || '' }}-b "$LAUNCHER_RELEASE_DESCRIPTION$(cat changelog.txt)" "$(cat version.txt)-${GITHUB_RUN_NUMBER}" output/
       env:
         LAUNCHER_RELEASE_DESCRIPTION: |
-          **You need to own Minecraft on the google play store and login with your google account to use this launcher**
           Links for linux flatpak or macOS can be found on our wiki https://mcpelauncher.readthedocs.io.
+          > [!CAUTION]
+          > - You need to own Minecraft on the google play store and login with your google account to use this launcher
+          > - Only Systems with OpenGL ES 3.0 GPU's e.g. intel integrated GPU first sold in 2012 (those from 2011 might work as well) or later can run versions after Minecraft 1.20.15
 
           [Download link for intel or amd based 64bit systems ( known as amd64, intel64 and x86_64 e.g. most PC's or Laptops )](https://github.com/minecraft-linux/appimage-builder/releases/download/${{env.APPIMAGE_VERSION}}-${{github.run_number}}/Minecraft_Bedrock_Launcher-x86_64-${{env.APPIMAGE_VERSION}}.${{github.run_number}}.AppImage)
 
