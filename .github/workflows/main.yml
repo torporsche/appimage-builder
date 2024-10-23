@@ -5,6 +5,15 @@ on:
     branches:
       main
   pull_request:
+  workflow_dispatch:
+    inputs:
+      type:
+        type: choice
+        default: draft
+        options:
+        - build
+        - draft
+        - release
   workflow_call:
     inputs:
       submodule-refs:
@@ -457,16 +466,17 @@ jobs:
       run: |
         curl -L https://github.com/tcnksm/ghr/releases/download/v0.13.0/ghr_v0.13.0_linux_amd64.tar.gz --output ghr.tar.gz
         tar -xf ghr.tar.gz
-    - name: Upload ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[DRAFT]') && 'Latest' || 'Draft' }}
-      if: github.ref == 'refs/heads/main'
+    - name: Upload ${{ github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[DRAFT]' || github.event_name == 'workflow_dispatch' && inputs.type == 'release') && 'Latest' || 'Draft' }}
+      if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' && inputs.type != 'build'
       run: |
-        ./ghr*/ghr -t ${{ secrets.GITHUB_TOKEN }} -u ${{ steps.setup-vars.outputs.owner }} -r ${{ steps.setup-vars.outputs.repo }} ${{ !(github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[DRAFT]')) && '-draft ' || '' }}-b "$LAUNCHER_RELEASE_DESCRIPTION$(cat changelog.txt)" "$(cat version.txt)-${GITHUB_RUN_NUMBER}" output/
+        ./ghr*/ghr -c ${{ github.sha }} -t ${{ secrets.GITHUB_TOKEN }} -u ${{ steps.setup-vars.outputs.owner }} -r ${{ steps.setup-vars.outputs.repo }} ${{ !(github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[DRAFT]') || github.event_name == 'workflow_dispatch' && inputs.type == 'release') && '-draft ' || '' }}-b "$LAUNCHER_RELEASE_DESCRIPTION$(cat changelog.txt)" "$(cat version.txt)-${GITHUB_RUN_NUMBER}" output/
       env:
         LAUNCHER_RELEASE_DESCRIPTION: |
-          Links for linux flatpak or macOS can be found on our wiki https://mcpelauncher.readthedocs.io.
+          Links for linux flatpak or macOS can be found on our wiki https://minecraft-linux.github.io.
           > [!CAUTION]
           > - You need to own Minecraft on the google play store and login with your google account to use this launcher
           > - Only Systems with OpenGL ES 3.0 GPU's e.g. intel integrated GPU first sold in 2012 (those from 2011 might work as well) or later can run versions after Minecraft 1.20.15
+          > - Only Systems with OpenGL ES 3.1 GPU's can continue using the GPU after March 2025
 
           [Download link for intel or amd based 64bit systems ( known as amd64, intel64 and x86_64 e.g. most PC's or Laptops )](https://github.com/minecraft-linux/appimage-builder/releases/download/${{env.APPIMAGE_VERSION}}-${{github.run_number}}/Minecraft_Bedrock_Launcher-x86_64-${{env.APPIMAGE_VERSION}}.${{github.run_number}}.AppImage)
 
@@ -490,7 +500,7 @@ jobs:
             - sometimes it helps to select a timezone used by developers of this launcher like Europe/Berlin or using a fixed UTC timezone without any Region/City
           ### Changelog
     - name: Publish release
-      if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[DRAFT]')
+      if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[DRAFT]') || github.event_name == 'workflow_dispatch' && inputs.type == 'release'
       run: |
         mkdir -p output3
         cp output/*.zsync output3/
