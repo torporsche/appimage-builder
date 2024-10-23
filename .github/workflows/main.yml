@@ -445,7 +445,7 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     needs: [ build, build32, buildbusterappimage, buildarmappimage64, appimage-bookworm ]
-    if: ${{ !cancelled() && github.event_name == 'push' && github.server_url == 'https://github.com' && github.repository == 'minecraft-linux/appimage-builder' }}
+    if: ${{ !cancelled() && (github.event_name == 'push' && github.server_url == 'https://github.com' && github.repository == 'minecraft-linux/appimage-builder' || github.event_name == 'workflow_dispatch' && inputs.type != 'build') }}
     steps:
     - uses: actions/checkout@v3
     - run: echo "APPIMAGE_VERSION=$(cat version.txt)" >> $GITHUB_ENV
