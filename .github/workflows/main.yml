@@ -53,7 +53,7 @@ on:
         type: string
         default: ""
       appImageFlags:
-        # -l -DGAMEWINDOW_SYSTEM=SDL3
+        #-l -DGAMEWINDOW_SYSTEM=SDL3
         type: string
         default: ""
 
@@ -111,7 +111,15 @@ jobs:
       run: |
         apt-get update
         apt-get upgrade -y
-        apt-get install -y curl ca-certificates git xz-utils lsb-release software-properties-common gnupg wget  
+        apt-get install -y curl ca-certificates git xz-utils lsb-release software-properties-common gnupg wget dbus
+        systemctl start dbus
+        if [ ! -e /etc/resolv.conf ]; then
+          ln -s /lib/systemd/system/resolv.conf /etc/resolv.conf
+        fi        
+        add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-12 main"
+        apt-get update
+        # sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        # sudo apt-get update && sudo apt-get install -y clang-11 llvm-11
     - name: Download deps
       run: |
         curl -L http://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz
