@@ -107,6 +107,10 @@ jobs:
         MCPELAUNCHER_UI_REF: ${{ inputs.mcpelauncher-ui-ref }}
         MSA_REPO: ${{ inputs.msa-repo }}
         MSA_REF: ${{ inputs.msa-ref }}
+    - name: Install curl
+      run: |
+        apt-get update
+        apt-get install -y curl ca-certificates wget git    
     - name: Download deps
       run: |
         curl -L http://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz
@@ -121,12 +125,7 @@ jobs:
         ./llvm.sh 11
         DEBIAN_FRONTEND=noninteractive apt -y --allow-unauthenticated install libfuse-dev libc++-11-dev:i386 libc++abi-11-dev:i386 libegl1-mesa-dev:i386 zsync uuid-dev uuid-dev:i386 libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386 libsecret-1-dev
         DEBIAN_FRONTEND=noninteractive apt-get install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libsndio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386
-        # fcitx-libs-dev:i386 Conflict with 64 bit
-    - name: Install curl
-      run: |
-        apt-get update
-        apt-get install -y curl ca-certificates wget git
-    
+        # fcitx-libs-dev:i386 Conflict with 64 bit   
     - name: Run the buildscript
       run: |
         . /opt/qt59/bin/qt59-env.sh || :
