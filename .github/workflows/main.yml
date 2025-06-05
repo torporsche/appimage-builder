@@ -65,7 +65,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: minecraftlinux/ci-xenial:0.0.1
+    container: ubuntu:22.04
     defaults:
       run:
         shell: bash
@@ -142,7 +142,7 @@ jobs:
         path: output/
   build32:
     runs-on: ubuntu-latest
-    container: minecraftlinux/ci-xenial:0.0.1
+    container: ubuntu:22.04
     defaults:
       run:
         shell: bash
