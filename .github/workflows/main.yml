@@ -109,9 +109,9 @@ jobs:
         MSA_REF: ${{ inputs.msa-ref }}
     - name: Install curl
       run: |
-        apt update
-        apt upgrade -y
-        apt install -y curl ca-certificates git    
+        apt-get update
+        apt-get upgrade -y
+        apt-get install -y curl ca-certificates git xz-utils  
     - name: Download deps
       run: |
         curl -L http://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz
