@@ -122,6 +122,11 @@ jobs:
         DEBIAN_FRONTEND=noninteractive apt -y --allow-unauthenticated install libfuse-dev libc++-11-dev:i386 libc++abi-11-dev:i386 libegl1-mesa-dev:i386 zsync uuid-dev uuid-dev:i386 libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386 libsecret-1-dev
         DEBIAN_FRONTEND=noninteractive apt-get install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libsndio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386
         # fcitx-libs-dev:i386 Conflict with 64 bit
+    - name: Install curl
+      run: |
+        apt-get update
+        apt-get install -y curl ca-certificates wget git
+    
     - name: Run the buildscript
       run: |
         . /opt/qt59/bin/qt59-env.sh || :
