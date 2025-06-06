@@ -116,8 +116,6 @@ jobs:
           tar --no-same-owner -xf llvm.tar.xz
           docker run -e GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER} \
             -v $PWD:$PWD -w $PWD --rm buildpack-deps:jammy bash -c "
-              apt-get update &&
-              apt-get install -y [ADDITIONAL-PACKAGES-YOU-NEED] &&
               export PATH=\$PWD/cmake-3.16.2-Linux-x86_64/bin:\$PWD/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04/bin:\$PATH &&
               export LD_LIBRARY_PATH=\$PWD/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04/lib:\$PWD/build/AppDir/usr/lib &&
               export CC=clang &&
