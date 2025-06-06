@@ -65,7 +65,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ubuntu:22.04
+    container: georgeyord/systemd-ubuntu:22.04
     defaults:
       run:
         shell: bash
@@ -112,10 +112,12 @@ jobs:
         apt-get update
         apt-get upgrade -y
         apt-get install -y curl ca-certificates git xz-utils lsb-release software-properties-common gnupg wget dbus
-        systemctl start dbus
+        systemctl start dbus || echo "Failed to start dbus, ensure systemd is running."
         if [ ! -e /etc/resolv.conf ]; then
           ln -s /lib/systemd/system/resolv.conf /etc/resolv.conf
-        fi        
+        else
+          echo "/etc/resolv.conf already exists, skipping symbolic link creation."
+        fi      
         add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-12 main"
         apt-get update
         # sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
@@ -155,7 +157,7 @@ jobs:
         path: output/
   build32:
     runs-on: ubuntu-latest
-    container: ubuntu:22.04
+    container: georgeyord/systemd-ubuntu:22.04
     defaults:
       run:
         shell: bash
