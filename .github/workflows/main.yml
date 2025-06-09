@@ -115,6 +115,12 @@ jobs:
           docker run -v $PWD:$PWD -w $PWD --rm buildpack-deps:jammy bash -c "
             apt-get update &&
             apt-get install -y libcurl4-openssl-dev &&
+            apt-get install -y curl &&
+            echo 'Checking CURL installation...' &&
+            if [ ! -f /usr/lib/x86_64-linux-gnu/libcurl.so ]; then
+              echo 'CURL library not found, attempting manual installation...' &&
+              apt-get install -y curl-dev
+            fi &&
             curl -L https://github.com/Kitware/CMake/releases/download/v3.16.2/cmake-3.16.2-Linux-x86_64.tar.gz --output cmake.tar.gz &&
             tar --no-same-owner -xf cmake.tar.gz &&
             curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0.6/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04.tar.xz --output llvm.tar.xz &&
@@ -123,8 +129,8 @@ jobs:
             export LD_LIBRARY_PATH=\$PWD/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04/lib:\$PWD/build/AppDir/usr/lib &&
             export CC=clang &&
             export CXX=clang++ &&
-            ./build_appimage.sh -j4 -k 'zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}[...]'
-          "        
+            ./build_appimage.sh -j4 -k 'zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}[...]
+          "     
       - name: create update info
         run: |
           cd output
