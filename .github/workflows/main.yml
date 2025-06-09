@@ -110,27 +110,20 @@ jobs:
         run: |
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
           docker pull buildpack-deps:jammy
-          
-          # Install necessary dependencies for CURL
-          docker run -v $PWD:$PWD -w $PWD --rm buildpack-deps:jammy bash -c "
-            apt-get update &&
-            apt-get install -y libcurl4-openssl-dev &&
-            apt-get install -y curl &&
-            echo 'Checking CURL installation...' &&
-            if [ ! -f /usr/lib/x86_64-linux-gnu/libcurl.so ]; then
-              echo 'CURL library not found, attempting manual installation...' &&
-              apt-get install -y curl-dev
-            fi &&
-            curl -L https://github.com/Kitware/CMake/releases/download/v3.16.2/cmake-3.16.2-Linux-x86_64.tar.gz --output cmake.tar.gz &&
-            tar --no-same-owner -xf cmake.tar.gz &&
-            curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0.6/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04.tar.xz --output llvm.tar.xz &&
-            tar --no-same-owner -xf llvm.tar.xz &&
-            export PATH=\$PWD/cmake-3.16.2-Linux-x86_64/bin:\$PWD/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04/bin:\$PATH &&
-            export LD_LIBRARY_PATH=\$PWD/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04/lib:\$PWD/build/AppDir/usr/lib &&
-            export CC=clang &&
-            export CXX=clang++ &&
-            ./build_appimage.sh -j4 -k 'zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}[...]
-          "     
+          curl -L https://github.com/Kitware/CMake/releases/download/v3.16.2/cmake-3.16.2-Linux-x86_64.tar.gz --output cmake.tar.gz
+          tar --no-same-owner -xf cmake.tar.gz
+          curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-15.0.6/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04.tar.xz --output llvm.tar.xz
+          tar --no-same-owner -xf llvm.tar.xz
+          docker run -e GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER} \
+            -v $PWD:$PWD -w $PWD --rm buildpack-deps:jammy bash -c "
+              apt-get update &&
+              apt-get install -y libcurl4-openssl-dev curl &&
+              export PATH=\$PWD/cmake-3.16.2-Linux-x86_64/bin:\$PWD/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04/bin:\$PATH &&
+              export LD_LIBRARY_PATH=\$PWD/clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04/lib:\$PWD/build/AppDir/usr/lib &&
+              export CC=clang &&
+              export CXX=clang++ &&
+              ./build_appimage.sh -j4 -k 'zsync|${{ inputs.update-information || "https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage" }}/version${{ inputs.suffix }}.x86_64.zsync' -i \${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p '${{ inputs.suffix }}' ${{ inputs.appImageFlags }}
+            " 
       - name: create update info
         run: |
           cd output
