@@ -123,7 +123,7 @@ jobs:
               export CC=clang &&
               export CXX=clang++ &&
               ./build_appimage.sh -j4 -k 'zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.x86_64.zsync' -i \${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p '${{ inputs.suffix }}' ${{ inputs.appImageFlags }}
-            " 
+            "
       - name: create update info
         run: |
           cd output
