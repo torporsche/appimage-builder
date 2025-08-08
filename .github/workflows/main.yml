@@ -1,0 +1,219 @@
+name: Containers
+
+on:
+  push:
+    branches:
+      main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      type:
+        type: choice
+        default: draft
+        options:
+        - build
+        - draft
+        - release
+  workflow_call:
+    inputs:
+      submodule-refs:
+        type: string
+        default: "[]"
+      mcpelauncher-repo:
+        type: string
+        default: https://github.com/minecraft-linux/mcpelauncher-manifest
+      mcpelauncher-ref:
+        type: string
+        default: ${{ github.repository == 'minecraft-linux/mcpelauncher-manifest' && (github.ref_name == 'ng' && github.sha) || 'ng' }}
+      mcpelauncher-qt6-ref:
+        type: string
+        default: ${{ github.repository == 'minecraft-linux/mcpelauncher-manifest' && (github.ref_name == 'qt6' && github.sha) || 'qt6' }}
+      mcpelauncher-ui-repo:
+        type: string
+        default: https://github.com/minecraft-linux/mcpelauncher-ui-manifest
+      mcpelauncher-ui-ref:
+        type: string
+        default: ${{ github.repository == 'minecraft-linux/mcpelauncher-ui-manifest' && (github.ref_name == 'ng' && github.sha) || 'ng' }}
+      mcpelauncher-ui-qt6-ref:
+        type: string
+        default: ${{ github.repository == 'minecraft-linux/mcpelauncher-ui-manifest' && (github.ref_name == 'qt6' && github.sha) || 'qt6' }}
+      msa-repo:
+        type: string
+        default: https://github.com/minecraft-linux/msa-manifest
+      msa-ref:
+        type: string
+        default: ${{ github.repository == 'minecraft-linux/msa-manifest' && (github.sha || github.ref) || 'master' }}
+      update-information:
+        type: string
+        default: ""
+      tag-name:
+        type: string
+        default: ""
+      suffix:
+        type: string
+        default: ""
+      appImageFlags:
+        # -l -DGAMEWINDOW_SYSTEM=SDL3
+        type: string
+        default: ""
+
+permissions:
+  id-token: write
+  contents: read
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: minecraftlinux/ci-xenial:0.0.1
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - uses: ChristopherHX/oidc@f8f35d97bc37ffbe779bb3ab8453920fedf6fb37
+      id: oidc
+      continue-on-error: true
+    - uses: actions/checkout@v3
+      with:
+        repository: ${{ steps.oidc.outputs.job_workflow_repo_name_and_owner || inputs.submodule-refs && 'minecraft-linux/appimage-builder' || github.repository }}
+        ref: ${{ steps.oidc.outputs.job_workflow_repo_ref || inputs.submodule-refs && 'main' || github.sha || github.ref }}
+    - name: Sync Submodule Sources
+      if: ${{ inputs.submodule-refs }}
+      uses: actions/github-script@v6
+      with:
+        github-token: none
+        script: |
+          var downloadRepo = async function(path, repo, ref) {
+            await io.mkdirP(path);
+            await exec.exec("git", ["init"], { cwd: path });
+            await exec.exec("git", ["remote", "add", "origin", repo], { cwd: path });
+            await exec.exec("git", ["fetch", "origin", ref], { cwd: path });
+            await exec.exec("git", ["reset", "--hard", "FETCH_HEAD"], { cwd: path });
+            await exec.exec("git", ["submodule", "update", "--init", "--recursive"], { cwd: path });
+          };
+          await downloadRepo("source/mcpelauncher", process.env.MCPELAUNCHER_REPO, process.env.MCPELAUNCHER_REF);
+          await downloadRepo("source/mcpelauncher-ui", process.env.MCPELAUNCHER_UI_REPO, process.env.MCPELAUNCHER_UI_REF);
+          await downloadRepo("source/msa", process.env.MSA_REPO, process.env.MSA_REF);
+          var submoduleRefs = JSON.parse(process.env.SUBMODULEREFS);
+          for(var submoduleRef of submoduleRefs) {
+            await exec.exec("git", ["fetch", submoduleRef.origin || "origin", submoduleRef.ref], { cwd: `source/${submoduleRef.project}/${submoduleRef.path}` });
+            await exec.exec("git", ["checkout", "FETCH_HEAD"], { cwd: `source/${submoduleRef.project}/${submoduleRef.path}` });
+          }
+      env:
+        SUBMODULEREFS: ${{ inputs.submodule-refs }}
+        MCPELAUNCHER_REPO: ${{ inputs.mcpelauncher-repo }}
+        MCPELAUNCHER_REF: ${{ inputs.mcpelauncher-ref }}
+        MCPELAUNCHER_UI_REPO: ${{ inputs.mcpelauncher-ui-repo }}
+        MCPELAUNCHER_UI_REF: ${{ inputs.mcpelauncher-ui-ref }}
+        MSA_REPO: ${{ inputs.msa-repo }}
+        MSA_REF: ${{ inputs.msa-ref }}
+    - name: Download deps
+      run: |
+        curl -L http://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz
+        tar --no-same-owner -xf llvm.tar.xz
+        curl -L https://github.com/Kitware/CMake/releases/download/v3.16.2/cmake-3.16.2-Linux-x86_64.tar.gz --output cmake.tar.gz
+        tar --no-same-owner -xf cmake.tar.gz
+        apt update
+        apt upgrade -y
+        apt remove -y libglib2.0-dev
+        DEBIAN_FRONTEND=noninteractive apt -y install wget g++-multilib texinfo apt-transport-https vim-common desktop-file-utils
+        chmod +x llvm.sh
+        ./llvm.sh 11
+        DEBIAN_FRONTEND=noninteractive apt -y --allow-unauthenticated install libfuse-dev libc++-11-dev:i386 libc++abi-11-dev:i386 libegl1-mesa-dev:i386 zsync uuid-dev uuid-dev:i386 libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386 libsecret-1-dev
+        DEBIAN_FRONTEND=noninteractive apt-get install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libsndio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386
+        # fcitx-libs-dev:i386 Conflict with 64 bit
+    - name: Run the buildscript
+      run: |
+        . /opt/qt59/bin/qt59-env.sh || :
+        export PATH=$PWD/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04/bin:$PWD/cmake-3.16.2-Linux-x86_64/bin:$PATH
+        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH+"${LD_LIBRARY_PATH}:"}$PWD/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04/lib:${PWD}/build/AppDir/usr/lib
+        export CC=clang
+        export CXX=clang++
+        export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/:/usr/lib/i386-linux-gnu/pkgconfig/
+        ./build_appimage.sh -j4 -q quirks-ubuntu-1604.sh -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.x86_64.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
+    - name: create update info
+      run: |
+        cd output
+        file=(*.AppImage)
+        echo build_id=2000$'\n'download_url=${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/${file} > version.amd64
+    - uses: actions/upload-artifact@v4
+      with:
+        name: appimage-xenial${{ inputs.suffix }}-x86_64
+        path: output/
+  build32:
+    runs-on: ubuntu-latest
+    container: minecraftlinux/ci-xenial:0.0.1
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - uses: ChristopherHX/oidc@f8f35d97bc37ffbe779bb3ab8453920fedf6fb37
+      id: oidc
+      continue-on-error: true
+    - uses: actions/checkout@v3
+      with:
+        repository: ${{ steps.oidc.outputs.job_workflow_repo_name_and_owner || inputs.submodule-refs && 'minecraft-linux/appimage-builder' || github.repository }}
+        ref: ${{ steps.oidc.outputs.job_workflow_repo_ref || inputs.submodule-refs && 'main' || github.sha || github.ref }}
+    - name: Sync Submodule Sources
+      if: ${{ inputs.submodule-refs }}
+      uses: actions/github-script@v6
+      with:
+        github-token: none
+        script: |
+          var downloadRepo = async function(path, repo, ref) {
+            await io.mkdirP(path);
+            await exec.exec("git", ["init"], { cwd: path });
+            await exec.exec("git", ["remote", "add", "origin", repo], { cwd: path });
+            await exec.exec("git", ["fetch", "origin", ref], { cwd: path });
+            await exec.exec("git", ["reset", "--hard", "FETCH_HEAD"], { cwd: path });
+            await exec.exec("git", ["submodule", "update", "--init", "--recursive"], { cwd: path });
+          };
+          await downloadRepo("source/mcpelauncher", process.env.MCPELAUNCHER_REPO, process.env.MCPELAUNCHER_REF);
+          await downloadRepo("source/mcpelauncher-ui", process.env.MCPELAUNCHER_UI_REPO, process.env.MCPELAUNCHER_UI_REF);
+          await downloadRepo("source/msa", process.env.MSA_REPO, process.env.MSA_REF);
+          var submoduleRefs = JSON.parse(process.env.SUBMODULEREFS);
+          for(var submoduleRef of submoduleRefs) {
+            await exec.exec("git", ["fetch", submoduleRef.origin || "origin", submoduleRef.ref], { cwd: `source/${submoduleRef.project}/${submoduleRef.path}` });
+            await exec.exec("git", ["checkout", "FETCH_HEAD"], { cwd: `source/${submoduleRef.project}/${submoduleRef.path}` });
+          }
+      env:
+        SUBMODULEREFS: ${{ inputs.submodule-refs }}
+        MCPELAUNCHER_REPO: ${{ inputs.mcpelauncher-repo }}
+        MCPELAUNCHER_REF: ${{ inputs.mcpelauncher-ref }}
+        MCPELAUNCHER_UI_REPO: ${{ inputs.mcpelauncher-ui-repo }}
+        MCPELAUNCHER_UI_REF: ${{ inputs.mcpelauncher-ui-ref }}
+        MSA_REPO: ${{ inputs.msa-repo }}
+        MSA_REF: ${{ inputs.msa-ref }}
+    - name: Download deps
+      run: |
+        curl -L http://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz
+        tar --no-same-owner -xf llvm.tar.xz
+        curl -L https://github.com/Kitware/CMake/releases/download/v3.16.2/cmake-3.16.2-Linux-x86_64.tar.gz --output cmake.tar.gz
+        tar --no-same-owner -xf cmake.tar.gz
+        apt update
+        apt upgrade -y
+        apt remove -y libglib2.0-dev
+        DEBIAN_FRONTEND=noninteractive apt -y remove qt59base qt59declarative qt59quickcontrols qt59quickcontrols2 qt59svg qt59webengine libcurl4-openssl-dev libzip-dev libuv1-dev
+        DEBIAN_FRONTEND=noninteractive apt -y install wget g++-multilib texinfo apt-transport-https vim-common desktop-file-utils libcurl4-openssl-dev:i386 libssl-dev:i386 libgl1-mesa-dev:i386 libuv1-dev:i386 libzip-dev:i386 libprotobuf-dev:i386 qt59base:i386 qt59declarative:i386 qt59quickcontrols:i386 qt59quickcontrols2:i386 qt59svg:i386 qt59webengine:i386 libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386
+        chmod +x llvm.sh
+        ./llvm.sh 11
+        DEBIAN_FRONTEND=noninteractive apt -y --allow-unauthenticated install libfuse-dev:i386 libc++-11-dev:i386 libc++abi-11-dev:i386 libegl1-mesa-dev:i386 zsync libsecret-1-dev
+        DEBIAN_FRONTEND=noninteractive apt-get install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libsndio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386 fcitx-libs-dev:i386 libcairo2-dev:i386 librsvg2-dev:i386
+    - name: Run the buildscript
+      run: |
+        . /opt/qt59/bin/qt59-env.sh || :
+        export PATH=$PWD/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04/bin:$PWD/cmake-3.16.2-Linux-x86_64/bin:$PATH
+        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH+"${LD_LIBRARY_PATH}:"}$PWD/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04/lib:${PWD}/build/AppDir/usr/lib
+        export CC=clang
+        export CXX=clang++
+        export PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig/
+        ./build_appimage.sh -t x86 -j4 -q quirks-ubuntu-1604-32.sh -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.i386.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
+    - name: create update info
+      run: |
+        cd output
+        file=(*.AppImage)
+        echo build_id=2000$'\n'download_url=${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/${file} > version.x86
+    - uses: actions/upload-artifact@v4
+      with:
+        name: appimage-xenial${{ inputs.suffix }}-i386
+        path: output/
