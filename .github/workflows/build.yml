@@ -1,0 +1,236 @@
+name: Build AppImage
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-x86_64:
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          git \
+          curl \
+          wget \
+          file \
+          libc6-dev \
+          libssl-dev \
+          libcurl4-openssl-dev \
+          zlib1g-dev \
+          libpng-dev \
+          libuv1-dev \
+          libzip-dev \
+          qt6-base-dev \
+          qt6-base-dev-tools \
+          qt6-webengine-dev \
+          qt6-webengine-dev-tools \
+          qt6-tools-dev \
+          qt6-tools-dev-tools \
+          qt6-qpa-plugins \
+          libqt6core5compat6-dev \
+          libqt6svg6-dev \
+          libqt6webenginecore6 \
+          libqt6webenginewidgets6 \
+          libqt6webengine6-data \
+          qt6-declarative-dev \
+          qml6-module-qtquick-controls \
+          qml6-module-qtquick-layouts \
+          qml6-module-qtquick-window \
+          qml6-module-qtquick-dialogs \
+          qml6-module-qtwebengine \
+          libgl1-mesa-dev \
+          libegl1-mesa-dev \
+          libgles2-mesa-dev \
+          libx11-dev \
+          libxcursor-dev \
+          libxinerama-dev \
+          libxi-dev \
+          libxrandr-dev \
+          libasound2-dev \
+          libpulse-dev \
+          libudev-dev \
+          libevdev-dev \
+          libnss3-dev \
+          libgconf-2-4 \
+          libxtst6 \
+          libxss1 \
+          libgconf2-dev \
+          libasound2-dev \
+          libxtst6 \
+          libatspi2.0-dev \
+          libdrm-dev \
+          libxcomposite-dev \
+          libxdamage-dev \
+          libxss1 \
+          libgbm-dev \
+          libglib2.0-dev \
+          ninja-build \
+          clang \
+          lld
+
+    - name: Install 32-bit dependencies (for x86_64 with 32-bit support)
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y \
+          gcc-multilib \
+          g++-multilib \
+          libc6-dev:i386 \
+          libssl-dev:i386 \
+          libcurl4-openssl-dev:i386 \
+          zlib1g-dev:i386 \
+          libx11-dev:i386 \
+          libxcursor-dev:i386 \
+          libxinerama-dev:i386 \
+          libxi-dev:i386 \
+          libxrandr-dev:i386 \
+          libasound2-dev:i386 \
+          libpulse-dev:i386 \
+          libudev-dev:i386 \
+          libevdev-dev:i386
+
+    - name: Setup environment
+      run: |
+        echo "MAKE_JOBS=$(nproc)" >> $GITHUB_ENV
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Build AppImage (Qt6)
+      run: |
+        ./build_appimage.sh -t x86_64 -o -j ${MAKE_JOBS} -q quirks-bookworm.sh
+
+    - name: Upload AppImage artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: appimage-x86_64-qt6
+        path: output/*.AppImage
+        retention-days: 7
+
+    - name: Upload zsync files
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: zsync-x86_64-qt6
+        path: output/*.zsync
+        retention-days: 7
+
+  build-x86_64-qt5:
+    runs-on: ubuntu-20.04
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Qt5 dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          git \
+          curl \
+          wget \
+          file \
+          libc6-dev \
+          libssl-dev \
+          libcurl4-openssl-dev \
+          zlib1g-dev \
+          libpng-dev \
+          libuv1-dev \
+          libzip-dev \
+          qtbase5-dev \
+          qtbase5-dev-tools \
+          qtwebengine5-dev \
+          qtwebengine5-dev-tools \
+          qttools5-dev \
+          qttools5-dev-tools \
+          qt5-qmake \
+          libqt5svg5-dev \
+          libqt5webenginecore5 \
+          libqt5webenginewidgets5 \
+          qtdeclarative5-dev \
+          qml-module-qtquick-controls2 \
+          qml-module-qtquick-layouts \
+          qml-module-qtquick-window2 \
+          qml-module-qtquick-dialogs \
+          qml-module-qtwebengine \
+          libgl1-mesa-dev \
+          libegl1-mesa-dev \
+          libgles2-mesa-dev \
+          libx11-dev \
+          libxcursor-dev \
+          libxinerama-dev \
+          libxi-dev \
+          libxrandr-dev \
+          libasound2-dev \
+          libpulse-dev \
+          libudev-dev \
+          libevdev-dev \
+          libnss3-dev \
+          libgconf-2-4 \
+          libxtst6 \
+          libxss1 \
+          libgconf2-dev \
+          ninja-build \
+          clang \
+          lld
+
+    - name: Install 32-bit dependencies
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y \
+          gcc-multilib \
+          g++-multilib \
+          libc6-dev:i386 \
+          libssl-dev:i386 \
+          libcurl4-openssl-dev:i386 \
+          zlib1g-dev:i386 \
+          libx11-dev:i386 \
+          libxcursor-dev:i386 \
+          libxinerama-dev:i386 \
+          libxi-dev:i386 \
+          libxrandr-dev:i386 \
+          libasound2-dev:i386 \
+          libpulse-dev:i386 \
+          libudev-dev:i386 \
+          libevdev-dev:i386
+
+    - name: Setup environment
+      run: |
+        echo "MAKE_JOBS=$(nproc)" >> $GITHUB_ENV
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+
+    - name: Build AppImage (Qt5)
+      run: |
+        ./build_appimage.sh -t x86_64 -j ${MAKE_JOBS} -q quirks-ubuntu-1604.sh
+
+    - name: Upload AppImage artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: appimage-x86_64-qt5
+        path: output/*.AppImage
+        retention-days: 7
+
+    - name: Upload zsync files
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: zsync-x86_64-qt5
+        path: output/*.zsync
+        retention-days: 7

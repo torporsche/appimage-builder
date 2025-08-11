@@ -78,10 +78,11 @@ add_default_cmake_options32() {
   DEFAULT_CMAKE_OPTIONS32=("${DEFAULT_CMAKE_OPTIONS32[@]}" "$@")
 }
 
-CFLAGS32="-DNDEBUG $CFLAGS32"
-CFLAGS="-DNDEBUG $CFLAGS"
-CXXFLAGS32="-I ${PWD}/curlappimageca $CXXFLAGS32"
-CXXFLAGS="-I ${PWD}/curlappimageca $CXXFLAGS"
+# Improved compiler flags for modern toolchain compatibility
+CFLAGS32="-DNDEBUG -fPIC -O2 $CFLAGS32"
+CFLAGS="-DNDEBUG -fPIC -O2 $CFLAGS"
+CXXFLAGS32="-I ${PWD}/curlappimageca -std=c++17 -fPIC -O2 $CXXFLAGS32"
+CXXFLAGS="-I ${PWD}/curlappimageca -std=c++17 -fPIC -O2 $CXXFLAGS"
 MCPELAUNCHERUI_CXXFLAGS="-DLAUNCHER_INIT_PATCH=\"if(!getenv(\\\"QTWEBENGINE_CHROMIUM_FLAGS\\\")) putenv(\\\"QTWEBENGINE_CHROMIUM_FLAGS=--no-sandbox\\\");\""
 if [ -n "$DISABLE_32BIT" ]
 then
@@ -125,7 +126,10 @@ then
     APPIMAGE_ARCH="x86_64"
     APPIMAGE_RUNTIME_FILE="runtime-x86_64"
     LINUXDEPLOY_ARCH="x86_64"
-    CFLAGS32="-m32 $CFLAGS32"
+    # Improved 32-bit support with better linking
+    CFLAGS32="-m32 -march=i686 -mtune=generic $CFLAGS32"
+    # Add better library search paths for x86_64
+    add_default_cmake_options -DCMAKE_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu;/usr/lib64;/lib64" -DCMAKE_INCLUDE_PATH="/usr/include/x86_64-linux-gnu"
 fi
 
 show_status "Downloading AppImage tools"
@@ -204,6 +208,10 @@ then
     reset_cmake_options
     add_cmake_options "${DEFAULT_CMAKE_OPTIONS[@]}" -DCMAKE_ASM_FLAGS="$MSA_CFLAGS $CFLAGS" -DCMAKE_C_FLAGS="$MSA_CFLAGS $CFLAGS" -DCMAKE_CXX_FLAGS="$MSA_CXXFLAGS $MSA_CFLAGS $CXXFLAGS $CFLAGS"
     add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_MSA_QT_UI=ON -DMSA_UI_PATH_DEV=OFF $MSA_QT6_OPT
+    # Add modern build flags for better compatibility
+    add_cmake_options -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release
+    # Improve library detection
+    add_cmake_options -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
     call_quirk build_msa
     build_component64 msa
     install_component msa
@@ -223,6 +231,9 @@ fi
 reset_cmake_options
 add_cmake_options "${DEFAULT_CMAKE_OPTIONS[@]}" -DCMAKE_ASM_FLAGS="$MCPELAUNCHER_CFLAGS $CFLAGS" -DCMAKE_C_FLAGS="$MCPELAUNCHER_CFLAGS $CFLAGS" -DCMAKE_CXX_FLAGS="$MCPELAUNCHER_CXXFLAGS $MCPELAUNCHER_CFLAGS $CXXFLAGS $CFLAGS"
 add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DMSA_DAEMON_PATH=. -DXAL_WEBVIEW_QT_PATH=. -DENABLE_QT_ERROR_UI=OFF
+# Add modern build flags for better compatibility
+add_cmake_options -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release
+add_cmake_options -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
 add_cmake_options "${EXTRA_CMAKE_FLAGS[@]}"
 call_quirk build_mcpelauncher
 build_component64 mcpelauncher
@@ -230,6 +241,9 @@ install_component mcpelauncher
 reset_cmake_options
 add_cmake_options "${DEFAULT_CMAKE_OPTIONS[@]}" -DCMAKE_ASM_FLAGS="$MCPELAUNCHERUI_CFLAGS $CFLAGS" -DCMAKE_C_FLAGS="$MCPELAUNCHERUI_CFLAGS $CFLAGS" -DCMAKE_CXX_FLAGS="$MCPELAUNCHERUI_CXXFLAGS $MCPELAUNCHERUI_CFLAGS $CXXFLAGS $CFLAGS"
 add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DGAME_LAUNCHER_PATH=. -DLAUNCHER_VERSION_NAME="$(cat version.txt).${BUILD_NUM}-AppImage-$TARGETARCH" -DLAUNCHER_VERSION_CODE="${BUILD_NUM}" -DLAUNCHER_CHANGE_LOG="Launcher $(cat version.txt)<br/>$(cat changelog.txt)" -DQt5QuickCompiler_FOUND:BOOL=OFF -DLAUNCHER_ENABLE_GOOGLE_PLAY_LICENCE_CHECK=ON -DLAUNCHER_DISABLE_DEV_MODE=ON -DLAUNCHER_VERSIONDB_URL=https://raw.githubusercontent.com/minecraft-linux/mcpelauncher-versiondb/$(cat versionsdbremote.txt) -DLAUNCHER_VERSIONDB_PATH="$SOURCE_DIR/versionsdb" $UPDATE_CMAKE_OPTIONS
+# Add modern build flags for UI component
+add_cmake_options -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release
+add_cmake_options -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
 call_quirk build_mcpelauncher_ui
 
 build_component64 mcpelauncher-ui
