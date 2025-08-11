@@ -78,18 +78,18 @@ jobs:
           libglib2.0-dev \
           ninja-build \
           clang \
-          lld
+          lld \
+          pkg-config
 
     - name: Install 32-bit dependencies (for x86_64 with 32-bit support)
       run: |
         sudo dpkg --add-architecture i386
         sudo apt-get update
+        # Install multilib compilers first
+        sudo apt-get install -y gcc-multilib g++-multilib
+        # Install 32-bit libraries, avoiding conflicts with dev packages
         sudo apt-get install -y \
-          gcc-multilib \
-          g++-multilib \
           libc6-dev:i386 \
-          libssl-dev:i386 \
-          libcurl4-openssl-dev:i386 \
           zlib1g-dev:i386 \
           libx11-dev:i386 \
           libxcursor-dev:i386 \
@@ -100,6 +100,10 @@ jobs:
           libpulse-dev:i386 \
           libudev-dev:i386 \
           libevdev-dev:i386
+        # Install 32-bit SSL and curl runtime libraries without dev packages to avoid conflicts
+        sudo apt-get install -y \
+          libssl3:i386 \
+          libcurl4:i386
 
     - name: Setup environment
       run: |
@@ -190,18 +194,18 @@ jobs:
           libgconf2-dev \
           ninja-build \
           clang \
-          lld
+          lld \
+          pkg-config
 
     - name: Install 32-bit dependencies
       run: |
         sudo dpkg --add-architecture i386
         sudo apt-get update
+        # Install multilib compilers first
+        sudo apt-get install -y gcc-multilib g++-multilib
+        # Install 32-bit libraries, avoiding conflicts with dev packages
         sudo apt-get install -y \
-          gcc-multilib \
-          g++-multilib \
           libc6-dev:i386 \
-          libssl-dev:i386 \
-          libcurl4-openssl-dev:i386 \
           zlib1g-dev:i386 \
           libx11-dev:i386 \
           libxcursor-dev:i386 \
@@ -212,6 +216,10 @@ jobs:
           libpulse-dev:i386 \
           libudev-dev:i386 \
           libevdev-dev:i386
+        # Install 32-bit SSL and curl runtime libraries without dev packages to avoid conflicts
+        sudo apt-get install -y \
+          libssl3:i386 \
+          libcurl4:i386
 
     - name: Setup environment
       run: |

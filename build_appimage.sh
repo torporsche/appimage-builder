@@ -130,6 +130,8 @@ then
     CFLAGS32="-m32 -march=i686 -mtune=generic $CFLAGS32"
     # Add better library search paths for x86_64
     add_default_cmake_options -DCMAKE_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu;/usr/lib64;/lib64" -DCMAKE_INCLUDE_PATH="/usr/include/x86_64-linux-gnu"
+    # Ensure PKG_CONFIG_PATH includes multiarch paths
+    export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH"
 fi
 
 show_status "Downloading AppImage tools"
