@@ -128,7 +128,7 @@ jobs:
         sudo apt install -y libasound2-dev libpulse-dev libaudio-dev libxext-dev libxfixes-dev libxss-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev || true  
         sudo apt install -y libdbus-1-dev libibus-1.0-dev libcairo2-dev librsvg2-dev || true
         # Install Qt5 packages for amd64 build support (qtquickcontrols2-5-dev was renamed)
-        sudo apt install -y qtbase5-dev qtdeclarative5-dev qml-module-qtquick-controls2 libqt5svg5-dev
+        sudo apt install -y qtbase5-dev qtdeclarative5-dev qml-module-qtquick-controls2 libqt5svg5-dev qtwebengine5-dev
         # Install build essentials
         sudo apt install -y build-essential cmake git
     - name: Run the buildscript
@@ -212,6 +212,8 @@ jobs:
         sudo apt install -y libcairo2-dev:i386 librsvg2-dev:i386 || true
         # Install Qt5 packages for 32-bit (package availability different in Ubuntu 24.04)
         sudo apt install -y qtbase5-dev:i386 qtdeclarative5-dev:i386 qml-module-qtquick-controls2:i386 libqt5svg5-dev:i386 || true
+        # Try to install QtWebEngine for i386 if available
+        sudo apt install -y qtwebengine5-dev:i386 || echo "QtWebEngine i386 not available, continuing without it"
         # Install build essentials
         sudo apt install -y build-essential cmake git
     - name: Run the buildscript
