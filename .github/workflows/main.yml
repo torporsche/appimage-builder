@@ -138,7 +138,7 @@ jobs:
         export CC=clang
         export CXX=clang++
         export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/:/usr/lib/i386-linux-gnu/pkgconfig/
-        ./build_appimage.sh -j4 -q quirks-ubuntu-2204.sh -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.x86_64.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
+        ./build_appimage.sh -j4 -q quirks-ubuntu-2204.sh -m -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.x86_64.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
     - name: create update info
       run: |
         cd output
@@ -223,7 +223,7 @@ jobs:
         export CC=clang
         export CXX=clang++
         export PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig/
-        ./build_appimage.sh -t x86 -j4 -q quirks-ubuntu-2204-32.sh -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.i386.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
+        ./build_appimage.sh -t x86 -j4 -q quirks-ubuntu-2204-32.sh -m -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.i386.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
     - name: create update info
       run: |
         cd output
