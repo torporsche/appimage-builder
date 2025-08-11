@@ -6,3 +6,12 @@ linuxdeploy*/
 linuxdeploy-plugin-qt*/
 runtime-*
 *.AppImage
+*.zsync
+tools/
+copenssl32/
+copenssl64/
+openssl/
+# Test files and temporary artifacts
+test-output/
+tmp/
+*.log

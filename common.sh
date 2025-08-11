@@ -13,9 +13,11 @@ show_status() {
   echo "$COLOR_STATUS=> $1$COLOR_RESET"
 }
 check_run() {
- "$@"
+  echo "Running: $*"
+  "$@"
   local STATUS=$?
   if (( $STATUS != 0 )); then
+    echo "ERROR: Command failed with exit code $STATUS: $*"
     exit $STATUS
   fi
 }
