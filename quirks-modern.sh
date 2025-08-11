@@ -101,7 +101,7 @@ quirk_build_mcpelauncher_ui() {
   # OpenGL configuration
   add_cmake_options "-DOPENGL_opengl_LIBRARY=/usr/lib/${DEBIANTARGET}/libOpenGL.so"
   add_cmake_options "-DOPENGL_gl_LIBRARY=/usr/lib/${DEBIANTARGET}/libGL.so"
-  add_cmake_options "-DOPENGL_glx_LIBRARY="
+  add_cmake_options "-DOPENGL_glx_LIBRARY=/usr/lib/${DEBIANTARGET}/libGLX.so"
   
   # Library search improvements
   add_cmake_options "-DCMAKE_PREFIX_PATH=/usr/lib/${DEBIANTARGET}/cmake"
