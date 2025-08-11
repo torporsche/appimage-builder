@@ -18,6 +18,11 @@ quirk_build_msa() {
   add_cmake_options "-DCMAKE_CXX_STANDARD=17" "-DCMAKE_C_STANDARD=11"
   add_cmake_options "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
   
+  # Ensure PKG_CONFIG_PATH is set for dependency detection
+  if [ -d "/usr/lib/${DEBIANTARGET}/pkgconfig" ]; then
+    export PKG_CONFIG_PATH="/usr/lib/${DEBIANTARGET}/pkgconfig:$PKG_CONFIG_PATH"
+  fi
+  
   # Qt version detection and configuration
   if [ -n "$MSA_QT6_OPT" ]; then
     add_cmake_options "-DQt6_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt6"
@@ -66,11 +71,18 @@ quirk_build_mcpelauncher32() {
   add_cmake_options "-DCMAKE_CXX_STANDARD=17" "-DCMAKE_C_STANDARD=11"
   add_cmake_options "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
   add_cmake_options "-DBUILD_FAKE_JNI_TESTS=OFF" "-DBUILD_FAKE_JNI_EXAMPLES=OFF"
+  # Use own curl to avoid conflicts with system packages
   add_cmake_options "-DUSE_OWN_CURL=ON"
   
   # Improved library paths for 32-bit
   add_cmake_options "-DCMAKE_LIBRARY_PATH=/usr/lib/i386-linux-gnu;/usr/lib32"
   add_cmake_options "-DCMAKE_INCLUDE_PATH=/usr/include/i386-linux-gnu"
+  
+  # Specify 32-bit SSL libraries explicitly
+  add_cmake_options "-DOPENSSL_ROOT_DIR=/usr"
+  add_cmake_options "-DOPENSSL_INCLUDE_DIR=/usr/include"
+  add_cmake_options "-DOPENSSL_CRYPTO_LIBRARY=/usr/lib/i386-linux-gnu/libcrypto.so"
+  add_cmake_options "-DOPENSSL_SSL_LIBRARY=/usr/lib/i386-linux-gnu/libssl.so"
 }
 
 quirk_build_mcpelauncher_ui() {
