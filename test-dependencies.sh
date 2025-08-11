@@ -39,7 +39,7 @@ cd "$TEST_DIR"
 
 # Test Qt5 detection via CMake
 echo "Testing Qt5 detection..."
-cat > CMakeLists_qt5.txt << 'EOF'
+cat > CMakeLists.txt << 'EOF'
 cmake_minimum_required(VERSION 3.16)
 project(TestQt5)
 find_package(Qt5 COMPONENTS Core Widgets QUIET)
@@ -52,7 +52,7 @@ else()
 endif()
 EOF
 
-if cmake -S . -B build_qt5 -f CMakeLists_qt5.txt >/dev/null 2>&1; then
+if cmake -S . -B build_qt5 >/dev/null 2>&1; then
     echo "Qt5 CMake detection: SUCCESS"
 else
     echo "Qt5 CMake detection: FAILED"
@@ -60,7 +60,7 @@ fi
 
 # Test Qt6 detection via CMake  
 echo "Testing Qt6 detection..."
-cat > CMakeLists_qt6.txt << 'EOF'
+cat > CMakeLists.txt << 'EOF'
 cmake_minimum_required(VERSION 3.16)
 project(TestQt6)
 find_package(Qt6 COMPONENTS Core Widgets QUIET)
@@ -73,7 +73,7 @@ else()
 endif()
 EOF
 
-if cmake -S . -B build_qt6 -f CMakeLists_qt6.txt >/dev/null 2>&1; then
+if cmake -S . -B build_qt6 >/dev/null 2>&1; then
     echo "Qt6 CMake detection: SUCCESS"
 else
     echo "Qt6 CMake detection: FAILED"
