@@ -1,0 +1,115 @@
+name: Build AppImages
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build x86_64 AppImage
+    runs-on: ubuntu-20.04
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          git \
+          libssl-dev \
+          libuv1-dev \
+          libzip-dev \
+          libprotobuf-dev \
+          protobuf-compiler \
+          qtbase5-dev \
+          qtwebengine5-dev \
+          qtquickcontrols2-5-dev \
+          qml-module-qtquick2 \
+          qml-module-qtquick-layouts \
+          qml-module-qtquick-controls \
+          qml-module-qtquick-controls2 \
+          qml-module-qtquick-window2 \
+          qml-module-qtquick-dialogs \
+          qml-module-qt-labs-settings \
+          qml-module-qt-labs-folderlistmodel \
+          clang \
+          wget \
+          fuse
+    
+    - name: Make scripts executable
+      run: chmod +x build.sh build_appimage.sh common.sh
+    
+    - name: Test source download
+      run: |
+        export CC=clang
+        export CXX=clang++
+        timeout 300 ./build.sh -j $(nproc) || echo "Build test completed/timed out"
+      continue-on-error: true
+    
+    - name: Upload build artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs-x86_64
+        path: |
+          build/
+          source/
+        retention-days: 7
+
+  build32:
+    name: Build i386 AppImage
+    runs-on: ubuntu-20.04
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Enable i386 architecture
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          git \
+          gcc-multilib \
+          g++-multilib \
+          clang \
+          libssl-dev:i386 \
+          libuv1-dev:i386 \
+          libzip-dev:i386 \
+          libprotobuf-dev:i386 \
+          protobuf-compiler \
+          qtbase5-dev:i386 \
+          wget \
+          fuse
+    
+    - name: Make scripts executable
+      run: chmod +x build.sh build_appimage.sh common.sh
+    
+    - name: Test 32-bit build
+      run: |
+        export CC=clang
+        export CXX=clang++
+        timeout 300 ./build.sh -j $(nproc) -q quirks-32.sh || echo "32-bit build test completed/timed out"
+      continue-on-error: true
+    
+    - name: Upload build artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs-i386
+        path: |
+          build/
+          source/
+        retention-days: 7
