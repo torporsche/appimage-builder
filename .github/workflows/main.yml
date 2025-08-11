@@ -203,6 +203,8 @@ jobs:
         sudo apt upgrade -y
         sudo apt install -y wget g++ g++-multilib texinfo apt-transport-https vim-common desktop-file-utils
         sudo apt install -y libcurl4-openssl-dev:i386 libssl-dev:i386 libgl1-mesa-dev:i386 libuv1-dev:i386 libprotobuf-dev:i386
+        # Install 32-bit C++ standard library development packages
+        sudo apt install -y libstdc++6:i386 libstdc++-14-dev:i386 || sudo apt install -y libstdc++6:i386 || true
         # Install development packages for 32-bit with dependency handling
         sudo apt install -y --fix-broken libfuse-dev:i386 zsync libsecret-1-dev || true
         # Try to install packages with less strict dependency checking
