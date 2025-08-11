@@ -65,7 +65,6 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: minecraftlinux/ci-xenial:0.0.1
     defaults:
       run:
         shell: bash
@@ -73,13 +72,13 @@ jobs:
     - uses: ChristopherHX/oidc@f8f35d97bc37ffbe779bb3ab8453920fedf6fb37
       id: oidc
       continue-on-error: true
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         repository: ${{ steps.oidc.outputs.job_workflow_repo_name_and_owner || inputs.submodule-refs && 'minecraft-linux/appimage-builder' || github.repository }}
         ref: ${{ steps.oidc.outputs.job_workflow_repo_ref || inputs.submodule-refs && 'main' || github.sha || github.ref }}
     - name: Sync Submodule Sources
       if: ${{ inputs.submodule-refs }}
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         github-token: none
         script: |
@@ -109,28 +108,32 @@ jobs:
         MSA_REF: ${{ inputs.msa-ref }}
     - name: Download deps
       run: |
-        curl -L http://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz
+        curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz
         tar --no-same-owner -xf llvm.tar.xz
         curl -L https://github.com/Kitware/CMake/releases/download/v3.16.2/cmake-3.16.2-Linux-x86_64.tar.gz --output cmake.tar.gz
         tar --no-same-owner -xf cmake.tar.gz
-        apt update
-        apt upgrade -y
-        apt remove -y libglib2.0-dev
-        DEBIAN_FRONTEND=noninteractive apt -y install wget g++-multilib texinfo apt-transport-https vim-common desktop-file-utils
-        chmod +x llvm.sh
-        ./llvm.sh 11
-        DEBIAN_FRONTEND=noninteractive apt -y --allow-unauthenticated install libfuse-dev libc++-11-dev:i386 libc++abi-11-dev:i386 libegl1-mesa-dev:i386 zsync uuid-dev uuid-dev:i386 libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386 libsecret-1-dev
-        DEBIAN_FRONTEND=noninteractive apt-get install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libsndio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386
-        # fcitx-libs-dev:i386 Conflict with 64 bit
+        # Install required packages for Ubuntu latest
+        sudo dpkg --add-architecture i386
+        sudo apt update
+        sudo apt upgrade -y
+        sudo apt install -y wget g++ g++-multilib texinfo apt-transport-https vim-common desktop-file-utils
+        sudo apt install -y libfuse-dev zsync uuid-dev uuid-dev:i386 libsecret-1-dev
+        sudo apt install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386
+        sudo apt install -y libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386
+        # Additional packages for 64-bit build
+        sudo apt install -y libegl1-mesa-dev libevdev-dev libpng-dev libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev libcurl4-openssl-dev libudev-dev zlib1g-dev libasound2-dev libpulse-dev libaudio-dev libxext-dev libxfixes-dev libxss-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libcairo2-dev librsvg2-dev
+        # Install Qt5 packages for i386 build support
+        sudo apt install -y qtbase5-dev qtdeclarative5-dev qtquickcontrols2-5-dev libqt5svg5-dev
+        # Install build essentials
+        sudo apt install -y build-essential cmake git
     - name: Run the buildscript
       run: |
-        . /opt/qt59/bin/qt59-env.sh || :
-        export PATH=$PWD/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04/bin:$PWD/cmake-3.16.2-Linux-x86_64/bin:$PATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH+"${LD_LIBRARY_PATH}:"}$PWD/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04/lib:${PWD}/build/AppDir/usr/lib
+        export PATH=$PWD/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04/bin:$PWD/cmake-3.16.2-Linux-x86_64/bin:$PATH
+        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH+"${LD_LIBRARY_PATH}:"}$PWD/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04/lib:${PWD}/build/AppDir/usr/lib
         export CC=clang
         export CXX=clang++
         export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig/:/usr/lib/i386-linux-gnu/pkgconfig/
-        ./build_appimage.sh -j4 -q quirks-ubuntu-1604.sh -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.x86_64.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
+        ./build_appimage.sh -j4 -q quirks-ubuntu-2204.sh -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.x86_64.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
     - name: create update info
       run: |
         cd output
@@ -142,7 +145,6 @@ jobs:
         path: output/
   build32:
     runs-on: ubuntu-latest
-    container: minecraftlinux/ci-xenial:0.0.1
     defaults:
       run:
         shell: bash
@@ -150,13 +152,13 @@ jobs:
     - uses: ChristopherHX/oidc@f8f35d97bc37ffbe779bb3ab8453920fedf6fb37
       id: oidc
       continue-on-error: true
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         repository: ${{ steps.oidc.outputs.job_workflow_repo_name_and_owner || inputs.submodule-refs && 'minecraft-linux/appimage-builder' || github.repository }}
         ref: ${{ steps.oidc.outputs.job_workflow_repo_ref || inputs.submodule-refs && 'main' || github.sha || github.ref }}
     - name: Sync Submodule Sources
       if: ${{ inputs.submodule-refs }}
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         github-token: none
         script: |
@@ -186,28 +188,33 @@ jobs:
         MSA_REF: ${{ inputs.msa-ref }}
     - name: Download deps
       run: |
-        curl -L http://releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz
+        curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz
         tar --no-same-owner -xf llvm.tar.xz
         curl -L https://github.com/Kitware/CMake/releases/download/v3.16.2/cmake-3.16.2-Linux-x86_64.tar.gz --output cmake.tar.gz
         tar --no-same-owner -xf cmake.tar.gz
-        apt update
-        apt upgrade -y
-        apt remove -y libglib2.0-dev
-        DEBIAN_FRONTEND=noninteractive apt -y remove qt59base qt59declarative qt59quickcontrols qt59quickcontrols2 qt59svg qt59webengine libcurl4-openssl-dev libzip-dev libuv1-dev
-        DEBIAN_FRONTEND=noninteractive apt -y install wget g++-multilib texinfo apt-transport-https vim-common desktop-file-utils libcurl4-openssl-dev:i386 libssl-dev:i386 libgl1-mesa-dev:i386 libuv1-dev:i386 libzip-dev:i386 libprotobuf-dev:i386 qt59base:i386 qt59declarative:i386 qt59quickcontrols:i386 qt59quickcontrols2:i386 qt59svg:i386 qt59webengine:i386 libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386
-        chmod +x llvm.sh
-        ./llvm.sh 11
-        DEBIAN_FRONTEND=noninteractive apt -y --allow-unauthenticated install libfuse-dev:i386 libc++-11-dev:i386 libc++abi-11-dev:i386 libegl1-mesa-dev:i386 zsync libsecret-1-dev
-        DEBIAN_FRONTEND=noninteractive apt-get install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libsndio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386 fcitx-libs-dev:i386 libcairo2-dev:i386 librsvg2-dev:i386
+        # Install required packages for 32-bit build on Ubuntu latest
+        sudo dpkg --add-architecture i386
+        sudo apt update
+        sudo apt upgrade -y
+        sudo apt install -y wget g++ g++-multilib texinfo apt-transport-https vim-common desktop-file-utils
+        sudo apt install -y libcurl4-openssl-dev:i386 libssl-dev:i386 libgl1-mesa-dev:i386 libuv1-dev:i386 libzip-dev:i386 libprotobuf-dev:i386
+        sudo apt install -y libfuse-dev:i386 zsync libsecret-1-dev
+        sudo apt install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386 libcairo2-dev:i386 librsvg2-dev:i386
+        sudo apt install -y libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386
+        # Additional 32-bit specific packages
+        sudo apt install -y libegl1-mesa-dev:i386 libevdev-dev:i386 libpng-dev:i386 zlib1g-dev:i386 libasound2:i386
+        # Install Qt5 packages for 32-bit
+        sudo apt install -y qtbase5-dev:i386 qtdeclarative5-dev:i386 qtquickcontrols2-5-dev:i386 libqt5svg5-dev:i386
+        # Install build essentials
+        sudo apt install -y build-essential cmake git
     - name: Run the buildscript
       run: |
-        . /opt/qt59/bin/qt59-env.sh || :
-        export PATH=$PWD/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04/bin:$PWD/cmake-3.16.2-Linux-x86_64/bin:$PATH
-        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH+"${LD_LIBRARY_PATH}:"}$PWD/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-16.04/lib:${PWD}/build/AppDir/usr/lib
+        export PATH=$PWD/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04/bin:$PWD/cmake-3.16.2-Linux-x86_64/bin:$PATH
+        export LD_LIBRARY_PATH=${LD_LIBRARY_PATH+"${LD_LIBRARY_PATH}:"}$PWD/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04/lib:${PWD}/build/AppDir/usr/lib
         export CC=clang
         export CXX=clang++
         export PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig/
-        ./build_appimage.sh -t x86 -j4 -q quirks-ubuntu-1604-32.sh -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.i386.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
+        ./build_appimage.sh -t x86 -j4 -q quirks-ubuntu-2204-32.sh -k "zsync|${{ inputs.update-information || 'https://github.com/minecraft-linux/appimage-builder/releases/download/ng.appimage' }}/version${{ inputs.suffix }}.i386.zsync" -i ${GITHUB_RUN_NUMBER}${{ inputs.submodule-refs && ' -s' || '' }}${{ inputs.tag-name && format(' -r {0}', inputs.tag-name) || '' }} -p "${{ inputs.suffix }}" ${{ inputs.appImageFlags }}
     - name: create update info
       run: |
         cd output
