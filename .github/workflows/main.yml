@@ -120,6 +120,8 @@ jobs:
         sudo apt install -y libfuse-dev zsync uuid-dev uuid-dev:i386 libsecret-1-dev
         sudo apt install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386
         sudo apt install -y libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386
+        # Additional packages for 64-bit build
+        sudo apt install -y libegl1-mesa-dev libevdev-dev libpng-dev libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev libcurl4-openssl-dev libudev-dev zlib1g-dev libasound2-dev libpulse-dev libaudio-dev libxext-dev libxfixes-dev libxss-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libcairo2-dev librsvg2-dev
         # Install Qt5 packages for i386 build support
         sudo apt install -y qtbase5-dev qtdeclarative5-dev qtquickcontrols2-5-dev libqt5svg5-dev
         # Install build essentials
@@ -199,6 +201,8 @@ jobs:
         sudo apt install -y libfuse-dev:i386 zsync libsecret-1-dev
         sudo apt install -y libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386 libx11-dev:i386 libxext-dev:i386 libxrandr-dev:i386 libxcursor-dev:i386 libxfixes-dev:i386 libxi-dev:i386 libxss-dev:i386 libxkbcommon-dev:i386 libdrm-dev:i386 libgbm-dev:i386 libgl1-mesa-dev:i386 libgles2-mesa-dev:i386 libegl1-mesa-dev:i386 libdbus-1-dev:i386 libibus-1.0-dev:i386 libudev-dev:i386 libcairo2-dev:i386 librsvg2-dev:i386
         sudo apt install -y libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386
+        # Additional 32-bit specific packages
+        sudo apt install -y libegl1-mesa-dev:i386 libevdev-dev:i386 libpng-dev:i386 zlib1g-dev:i386 libasound2:i386
         # Install Qt5 packages for 32-bit
         sudo apt install -y qtbase5-dev:i386 qtdeclarative5-dev:i386 qtquickcontrols2-5-dev:i386 libqt5svg5-dev:i386
         # Install build essentials

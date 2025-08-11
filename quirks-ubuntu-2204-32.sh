@@ -22,8 +22,7 @@ quirk_build_msa() {
 }
 
 quirk_build_mcpelauncher() {
-  # Install additional required 32-bit packages if needed
-  sudo apt install -y libegl1-mesa-dev:i386 libevdev-dev:i386 libpng-dev:i386 libx11-dev:i386 libxcursor-dev:i386 libxinerama-dev:i386 libxi-dev:i386 libxrandr-dev:i386 libcurl4-openssl-dev:i386 libudev-dev:i386 zlib1g-dev:i386 libasound2:i386 libasound2-dev:i386 libpulse-dev:i386 libaudio-dev:i386
+  # Note: 32-bit packages should already be installed in the main workflow step
   add_cmake_options -DZLIB_LIBRARY=/usr/lib/i386-linux-gnu/libz.so -DPNG_LIBRARY=/usr/lib/i386-linux-gnu/libpng.so -DPNG_PNG_INCLUDE_DIR=/usr/include/libpng -DX11_X11_LIB=/usr/lib/i386-linux-gnu/libX11.so -DCURL_LIBRARY=/usr/lib/i386-linux-gnu/libcurl.so "-DOPENSSL_SSL_LIBRARY=$PWD/copenssl32/lib/libssl.so" "-DOPENSSL_CRYPTO_LIBRARY=$PWD/copenssl32/lib/libcrypto.so" "-DOPENSSL_INCLUDE_DIR=$PWD/copenssl32/include"
 }
 

@@ -22,8 +22,7 @@ quirk_build_msa() {
 }
 
 quirk_build_mcpelauncher() {
-  # Install additional required packages if needed
-  sudo apt install -y libegl1-mesa-dev libevdev-dev libpng-dev libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev libcurl4-openssl-dev libudev-dev libevdev-dev libegl1-mesa-dev libasound2 zlib1g-dev libasound2-dev libpulse-dev libaudio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libcairo2-dev librsvg2-dev
+  # Note: Packages should already be installed in the main workflow step
   add_cmake_options -DZLIB_LIBRARY=/usr/lib/x86_64-linux-gnu/libz.so -DPNG_LIBRARY=/usr/lib/x86_64-linux-gnu/libpng.so -DPNG_PNG_INCLUDE_DIR=/usr/include/libpng -DX11_X11_LIB=/usr/lib/x86_64-linux-gnu/libX11.so -DCURL_LIBRARY=/usr/lib/x86_64-linux-gnu/libcurl.so "-DOPENSSL_SSL_LIBRARY=$PWD/copenssl64/lib64/libssl.so" "-DOPENSSL_CRYPTO_LIBRARY=$PWD/copenssl64/lib64/libcrypto.so" "-DOPENSSL_INCLUDE_DIR=$PWD/copenssl64/include"
 }
 
