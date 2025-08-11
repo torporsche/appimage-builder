@@ -15,7 +15,7 @@ make install_sw
 export LD_LIBRARY_PATH=$PWD/../copenssl64/lib64:$PWD/../copenssl32/lib:${LD_LIBRARY_PATH}
 popd
 MCPELAUNCHER_CFLAGS32="-I ${PWD}/copenssl32/include -Wl,-L$PWD/copenssl32/lib $MCPELAUNCHER_CFLAGS32"
-MCPELAUNCHER_CFLAGS="-stdlib=libc++ -I ${PWD}/copenssl64/include -Wl,-L$PWD/copenssl64/lib64 $MCPELAUNCHER_CFLAGS"
+MCPELAUNCHER_CFLAGS="-I ${PWD}/copenssl64/include -Wl,-L$PWD/copenssl64/lib64 $MCPELAUNCHER_CFLAGS"
 MCPELAUNCHER_CXXFLAGS32="-stdlib=libstdc++ $MCPELAUNCHER_CXXFLAGS32"
 MCPELAUNCHER_CXXFLAGS="-stdlib=libc++ $MCPELAUNCHER_CXXFLAGS"
 MCPELAUNCHERUI_CFLAGS="-I ${PWD}/copenssl64/include -Wl,-L$PWD/copenssl64/lib64 $MCPELAUNCHERUI_CFLAGS"
@@ -28,6 +28,8 @@ quirk_build_msa() {
 quirk_build_mcpelauncher() {
   # Note: Packages should already be installed in the main workflow step
   add_cmake_options -DZLIB_LIBRARY=/usr/lib/x86_64-linux-gnu/libz.so -DPNG_LIBRARY=/usr/lib/x86_64-linux-gnu/libpng.so -DPNG_PNG_INCLUDE_DIR=/usr/include/libpng -DX11_X11_LIB=/usr/lib/x86_64-linux-gnu/libX11.so -DCURL_LIBRARY=/usr/lib/x86_64-linux-gnu/libcurl.so "-DOPENSSL_SSL_LIBRARY=$PWD/copenssl64/lib64/libssl.so" "-DOPENSSL_CRYPTO_LIBRARY=$PWD/copenssl64/lib64/libcrypto.so" "-DOPENSSL_INCLUDE_DIR=$PWD/copenssl64/include"
+  # Ensure proper library paths for SDL3 build
+  add_cmake_options -DZLIB_INCLUDE_DIR=/usr/include -DPNG_PNG_INCLUDE_DIR=/usr/include
 }
 
 quirk_build_mcpelauncher32() {
