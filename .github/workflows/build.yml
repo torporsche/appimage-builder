@@ -107,9 +107,13 @@ jobs:
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
 
+    - name: Test dependencies
+      run: |
+        ./test-dependencies.sh
+
     - name: Build AppImage (Qt6)
       run: |
-        ./build_appimage.sh -t x86_64 -o -j ${MAKE_JOBS} -q quirks-bookworm.sh
+        ./build_appimage.sh -t x86_64 -o -j ${MAKE_JOBS} -q quirks-modern.sh
 
     - name: Upload AppImage artifacts
       uses: actions/upload-artifact@v4
@@ -215,9 +219,13 @@ jobs:
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
 
+    - name: Test dependencies
+      run: |
+        ./test-dependencies.sh
+
     - name: Build AppImage (Qt5)
       run: |
-        ./build_appimage.sh -t x86_64 -j ${MAKE_JOBS} -q quirks-ubuntu-1604.sh
+        ./build_appimage.sh -t x86_64 -j ${MAKE_JOBS} -q quirks-modern.sh
 
     - name: Upload AppImage artifacts
       uses: actions/upload-artifact@v4
