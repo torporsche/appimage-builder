@@ -3,10 +3,14 @@
 
 git clone https://github.com/openssl/openssl.git -b openssl-3.2
 pushd openssl
+# Build 32-bit OpenSSL first
 setarch i386 ./config -m32 --prefix=$PWD/../copenssl32 --openssldir=$PWD/../copenssl32/ssl
+make -j$(nproc)
 make install_sw
-./config --prefix=$PWD/../copenssl64 --openssldir=$PWD/../copenssl64/ssl
+# Clean and build 64-bit OpenSSL (needed for some tools)
 make clean
+./config --prefix=$PWD/../copenssl64 --openssldir=$PWD/../copenssl64/ssl
+make -j$(nproc)
 make install_sw
 export LD_LIBRARY_PATH=$PWD/../copenssl64/lib64:$PWD/../copenssl32/lib:${LD_LIBRARY_PATH}
 popd
@@ -17,8 +21,16 @@ MCPELAUNCHER_CXXFLAGS="-stdlib=libc++ $MCPELAUNCHER_CXXFLAGS"
 MCPELAUNCHERUI_CFLAGS="-I ${PWD}/copenssl64/include -Wl,-L$PWD/copenssl64/lib64 $MCPELAUNCHERUI_CFLAGS"
 
 quirk_build_msa() {
-  # Use system Qt5 for 32-bit
-  add_cmake_options -DQT_RPATH=/usr/lib/i386-linux-gnu/
+  # Use system Qt5 for 32-bit - comprehensive path setup for Qt5 detection
+  add_cmake_options -DQT_RPATH=/usr/lib/i386-linux-gnu/ 
+  # Try multiple common locations for Qt5
+  add_cmake_options -DCMAKE_PREFIX_PATH="/usr/lib/i386-linux-gnu;/usr/lib/i386-linux-gnu/cmake;/usr/share/cmake;/usr/lib/cmake"
+  add_cmake_options -DQt5_DIR="/usr/lib/i386-linux-gnu/cmake/Qt5"
+  # Fallback to system paths if multiarch paths don't work
+  add_cmake_options -DCMAKE_FIND_ROOT_PATH="/usr"
+  add_cmake_options -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH
+  add_cmake_options -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
+  add_cmake_options -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH
 }
 
 quirk_build_mcpelauncher() {
