@@ -3,10 +3,14 @@
 
 git clone https://github.com/openssl/openssl.git -b openssl-3.2
 pushd openssl
+# Build 32-bit OpenSSL first
 setarch i386 ./config -m32 --prefix=$PWD/../copenssl32 --openssldir=$PWD/../copenssl32/ssl
+make -j$(nproc)
 make install_sw
-./config --prefix=$PWD/../copenssl64 --openssldir=$PWD/../copenssl64/ssl
+# Clean and build 64-bit OpenSSL
 make clean
+./config --prefix=$PWD/../copenssl64 --openssldir=$PWD/../copenssl64/ssl
+make -j$(nproc)
 make install_sw
 export LD_LIBRARY_PATH=$PWD/../copenssl64/lib64:$PWD/../copenssl32/lib:${LD_LIBRARY_PATH}
 popd
