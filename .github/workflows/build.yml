@@ -122,13 +122,24 @@ jobs:
 
     - name: Install multilib compilers
       run: |
-        # Install multilib compilers with retry logic
+        # Install multilib compilers with retry logic and better error handling
+        echo "Installing multilib compilers for x86_64 build..."
         for i in {1..3}; do
-          if sudo apt-get install -y gcc-multilib g++-multilib; then
+          echo "Attempt $i of 3..."
+          if sudo apt-get install -y --fix-missing gcc-multilib g++-multilib; then
+            echo "✓ Multilib compilers installed successfully"
             break
           fi
-          echo "Attempt $i failed, retrying in 30 seconds..."
-          sleep 30
+          echo "✗ Attempt $i failed"
+          if [ $i -lt 3 ]; then
+            echo "Cleaning package cache and retrying in 30 seconds..."
+            sudo apt-get clean
+            sudo apt-get update --fix-missing
+            sleep 30
+          else
+            echo "❌ Failed to install multilib compilers after 3 attempts"
+            exit 1
+          fi
         done
 
     - name: Install 32-bit core libraries
@@ -292,13 +303,24 @@ jobs:
 
     - name: Install multilib compilers
       run: |
-        # Install multilib compilers with retry logic
+        # Install multilib compilers with retry logic and better error handling
+        echo "Installing multilib compilers for x86_64-qt5 build..."
         for i in {1..3}; do
-          if sudo apt-get install -y gcc-multilib g++-multilib; then
+          echo "Attempt $i of 3..."
+          if sudo apt-get install -y --fix-missing gcc-multilib g++-multilib; then
+            echo "✓ Multilib compilers installed successfully"
             break
           fi
-          echo "Attempt $i failed, retrying in 30 seconds..."
-          sleep 30
+          echo "✗ Attempt $i failed"
+          if [ $i -lt 3 ]; then
+            echo "Cleaning package cache and retrying in 30 seconds..."
+            sudo apt-get clean
+            sudo apt-get update --fix-missing
+            sleep 30
+          else
+            echo "❌ Failed to install multilib compilers after 3 attempts"
+            exit 1
+          fi
         done
 
     - name: Install 32-bit libraries
@@ -440,13 +462,24 @@ jobs:
 
     - name: Install multilib compilers
       run: |
-        # Install multilib compilers with retry logic
+        # Install multilib compilers with retry logic and better error handling
+        echo "Installing multilib compilers for x86 build..."
         for i in {1..3}; do
-          if sudo apt-get install -y gcc-multilib g++-multilib; then
+          echo "Attempt $i of 3..."
+          if sudo apt-get install -y --fix-missing gcc-multilib g++-multilib; then
+            echo "✓ Multilib compilers installed successfully"
             break
           fi
-          echo "Attempt $i failed, retrying in 30 seconds..."
-          sleep 30
+          echo "✗ Attempt $i failed"
+          if [ $i -lt 3 ]; then
+            echo "Cleaning package cache and retrying in 30 seconds..."
+            sudo apt-get clean
+            sudo apt-get update --fix-missing
+            sleep 30
+          else
+            echo "❌ Failed to install multilib compilers after 3 attempts"
+            exit 1
+          fi
         done
 
     - name: Setup environment for 32-bit build
