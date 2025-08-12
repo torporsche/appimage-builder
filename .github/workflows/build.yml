@@ -252,13 +252,13 @@ jobs:
         retention-days: 7
 
   build-x86:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install dependencies for x86 builds
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -275,24 +275,6 @@ jobs:
           libpng-dev \
           libuv1-dev \
           libzip-dev \
-          qt6-base-dev \
-          qt6-base-dev-tools \
-          qt6-webengine-dev \
-          qt6-webengine-dev-tools \
-          qt6-tools-dev \
-          qt6-tools-dev-tools \
-          qt6-qpa-plugins \
-          libqt6core5compat6-dev \
-          libqt6svg6-dev \
-          libqt6webenginecore6 \
-          libqt6webenginewidgets6 \
-          libqt6webengine6-data \
-          qt6-declarative-dev \
-          qml6-module-qtquick-controls \
-          qml6-module-qtquick-layouts \
-          qml6-module-qtquick-window \
-          qml6-module-qtquick-dialogs \
-          qml6-module-qtwebengine \
           libgl1-mesa-dev \
           libegl1-mesa-dev \
           libgles2-mesa-dev \
@@ -356,15 +338,15 @@ jobs:
       run: |
         ./test-dependencies.sh
 
-    - name: Build AppImage (x86 Qt6)
+    - name: Build AppImage (x86 No Qt UI)
       run: |
-        ./build_appimage.sh -t x86 -o -j ${MAKE_JOBS} -q quirks-x86.sh
+        ./build_appimage.sh -t x86 -m -j ${MAKE_JOBS} -q quirks-x86.sh
 
     - name: Upload AppImage artifacts
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: appimage-x86-qt6
+        name: appimage-x86-noqt
         path: output/*.AppImage
         retention-days: 7
 
@@ -372,7 +354,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: zsync-x86-qt6
+        name: zsync-x86-noqt
         path: output/*.zsync
         retention-days: 7
 
