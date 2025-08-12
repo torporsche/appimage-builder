@@ -13,32 +13,37 @@ quirk_init() {
 }
 
 quirk_build_msa() {
-  # Modern MSA build configuration
-  add_cmake_options "-DCURL_LIBRARY=/usr/lib/${DEBIANTARGET}/libcurl.so"
-  add_cmake_options "-DCMAKE_CXX_STANDARD=17" "-DCMAKE_C_STANDARD=11"
-  add_cmake_options "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
-  
-  # Ensure PKG_CONFIG_PATH is set for dependency detection
-  if [ -d "/usr/lib/${DEBIANTARGET}/pkgconfig" ]; then
-    export PKG_CONFIG_PATH="/usr/lib/${DEBIANTARGET}/pkgconfig:$PKG_CONFIG_PATH"
-  fi
-  
-  # Qt version detection and configuration
-  if [ -n "$MSA_QT6_OPT" ]; then
-    add_cmake_options "-DQt6_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt6"
-    add_cmake_options "-DQt6GuiTools_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt6GuiTools"
-    add_cmake_options "-DQt6WebEngineCore_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt6WebEngineCore"
-    add_cmake_options "-DQt6WebEngineWidgets_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt6WebEngineWidgets"
+  # Only configure MSA if not disabled
+  if [ -z "$DISABLE_MSA" ]; then
+    # Modern MSA build configuration
+    add_cmake_options "-DCURL_LIBRARY=/usr/lib/${DEBIANTARGET}/libcurl.so"
+    add_cmake_options "-DCMAKE_CXX_STANDARD=17" "-DCMAKE_C_STANDARD=11"
+    add_cmake_options "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+    
+    # Ensure PKG_CONFIG_PATH is set for dependency detection
+    if [ -d "/usr/lib/${DEBIANTARGET}/pkgconfig" ]; then
+      export PKG_CONFIG_PATH="/usr/lib/${DEBIANTARGET}/pkgconfig:$PKG_CONFIG_PATH"
+    fi
+    
+    # Qt version detection and configuration
+    if [ -n "$MSA_QT6_OPT" ]; then
+      add_cmake_options "-DQt6_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt6"
+      add_cmake_options "-DQt6GuiTools_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt6GuiTools"
+      add_cmake_options "-DQt6WebEngineCore_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt6WebEngineCore"
+      add_cmake_options "-DQt6WebEngineWidgets_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt6WebEngineWidgets"
+    else
+      add_cmake_options "-DQt5_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt5"
+      add_cmake_options "-DQt5Widgets_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt5Widgets"
+      add_cmake_options "-DQt5WebEngine_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt5WebEngine"
+      add_cmake_options "-DQt5WebEngineWidgets_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt5WebEngineWidgets"
+    fi
+    
+    # OpenGL configuration
+    add_cmake_options "-DOPENGL_opengl_LIBRARY=/usr/lib/${DEBIANTARGET}/libOpenGL.so"
+    add_cmake_options "-DOPENGL_gl_LIBRARY=/usr/lib/${DEBIANTARGET}/libGL.so"
   else
-    add_cmake_options "-DQt5_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt5"
-    add_cmake_options "-DQt5Widgets_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt5Widgets"
-    add_cmake_options "-DQt5WebEngine_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt5WebEngine"
-    add_cmake_options "-DQt5WebEngineWidgets_DIR=/usr/lib/${DEBIANTARGET}/cmake/Qt5WebEngineWidgets"
+    show_status "MSA disabled, skipping MSA build configuration"
   fi
-  
-  # OpenGL configuration
-  add_cmake_options "-DOPENGL_opengl_LIBRARY=/usr/lib/${DEBIANTARGET}/libOpenGL.so"
-  add_cmake_options "-DOPENGL_gl_LIBRARY=/usr/lib/${DEBIANTARGET}/libGL.so"
 }
 
 quirk_build_mcpelauncher() {

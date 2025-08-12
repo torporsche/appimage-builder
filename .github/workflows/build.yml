@@ -39,7 +39,6 @@ jobs:
           qt6-tools-dev \
           qt6-tools-dev-tools \
           qt6-qpa-plugins \
-          libqt6core5compat6-dev \
           libqt6svg6-dev \
           libqt6webenginecore6 \
           libqt6webenginewidgets6 \
@@ -62,20 +61,6 @@ jobs:
           libpulse-dev \
           libudev-dev \
           libevdev-dev \
-          libnss3-dev \
-          libgconf-2-4 \
-          libxtst6 \
-          libxss1 \
-          libgconf2-dev \
-          libasound2-dev \
-          libxtst6 \
-          libatspi2.0-dev \
-          libdrm-dev \
-          libxcomposite-dev \
-          libxdamage-dev \
-          libxss1 \
-          libgbm-dev \
-          libglib2.0-dev \
           ninja-build \
           clang \
           lld \
@@ -117,7 +102,7 @@ jobs:
 
     - name: Build AppImage (Qt6)
       run: |
-        ./build_appimage.sh -t x86_64 -o -j ${MAKE_JOBS} -q quirks-modern.sh
+        ./build_appimage.sh -t x86_64 -o -m -j ${MAKE_JOBS} -q quirks-modern.sh
 
     - name: Upload AppImage artifacts
       uses: actions/upload-artifact@v4
@@ -187,11 +172,6 @@ jobs:
           libpulse-dev \
           libudev-dev \
           libevdev-dev \
-          libnss3-dev \
-          libgconf-2-4 \
-          libxtst6 \
-          libxss1 \
-          libgconf2-dev \
           ninja-build \
           clang \
           lld \
@@ -233,7 +213,7 @@ jobs:
 
     - name: Build AppImage (Qt5)
       run: |
-        ./build_appimage.sh -t x86_64 -j ${MAKE_JOBS} -q quirks-modern.sh
+        ./build_appimage.sh -t x86_64 -m -j ${MAKE_JOBS} -q quirks-modern.sh
 
     - name: Upload AppImage artifacts
       uses: actions/upload-artifact@v4

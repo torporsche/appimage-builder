@@ -157,7 +157,9 @@ call_quirk init
 if [ -z "$SKIP_SOURCES" ]
 then
     show_status "Downloading sources"
-    download_repo msa https://github.com/minecraft-linux/msa-manifest.git $(cat msa.commit)
+    if [ -z "$DISABLE_MSA" ]; then
+        download_repo msa https://github.com/minecraft-linux/msa-manifest.git $(cat msa.commit)
+    fi
     download_repo mcpelauncher https://github.com/minecraft-linux/mcpelauncher-manifest.git $(cat "mcpelauncher${COMMIT_FILE_SUFFIX}.commit")
     download_repo mcpelauncher-ui https://github.com/minecraft-linux/mcpelauncher-ui-manifest.git $(cat "mcpelauncher-ui${COMMIT_FILE_SUFFIX}.commit")
 fi
