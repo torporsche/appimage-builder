@@ -81,12 +81,23 @@ fi
 
 # Test OpenGL libraries
 echo "Testing OpenGL libraries..."
-ldconfig -p | grep -i opengl || echo "OpenGL libraries not found in ldconfig"
+if ldconfig -p | grep -i opengl >/dev/null 2>&1; then
+  echo "OpenGL libraries found in ldconfig"
+else
+  echo "OpenGL libraries not found in ldconfig, checking manually..."
+  if [ -f "/usr/lib/x86_64-linux-gnu/libGL.so" ] || [ -f "/usr/lib/x86_64-linux-gnu/libGL.so.1" ]; then
+    echo "OpenGL libraries found manually: OK"
+  else
+    echo "OpenGL libraries: NOT FOUND"
+  fi
+fi
 
 # Test common libraries that might cause issues
 echo "Testing common development libraries..."
-test -f /usr/lib/x86_64-linux-gnu/libcurl.so && echo "libcurl: OK" || echo "libcurl: NOT FOUND"
-test -f /usr/lib/x86_64-linux-gnu/libssl.so && echo "libssl: OK" || echo "libssl: NOT FOUND"  
+test -f /usr/lib/x86_64-linux-gnu/libcurl.so && echo "libcurl: OK" || \
+  (test -f /usr/lib/x86_64-linux-gnu/libcurl.so.4 && echo "libcurl runtime: OK (dev missing)" || echo "libcurl: NOT FOUND")
+test -f /usr/lib/x86_64-linux-gnu/libssl.so && echo "libssl: OK" || \
+  (test -f /usr/lib/x86_64-linux-gnu/libssl.so.3 && echo "libssl runtime: OK (dev missing)" || echo "libssl: NOT FOUND")  
 test -f /usr/lib/x86_64-linux-gnu/libz.so && echo "libz: OK" || echo "libz: NOT FOUND"
 
 # Test 32-bit support

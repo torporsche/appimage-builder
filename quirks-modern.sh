@@ -6,10 +6,17 @@ quirk_init() {
   export CXXFLAGS="-std=c++17 -fPIC $CXXFLAGS"
   export CFLAGS="-fPIC $CFLAGS"
   
-  # Ensure we use modern OpenSSL
+  # Ensure we use modern OpenSSL and libcurl
   if [ -d "/usr/lib/x86_64-linux-gnu" ]; then
     export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:$PKG_CONFIG_PATH"
+    # Create symlinks for libcurl if missing
+    if [ ! -e "/usr/lib/x86_64-linux-gnu/libcurl.so" ] && [ -e "/usr/lib/x86_64-linux-gnu/libcurl.so.4" ]; then
+      sudo ln -sf libcurl.so.4 /usr/lib/x86_64-linux-gnu/libcurl.so
+    fi
   fi
+  
+  # Setup LD_LIBRARY_PATH for proper library detection
+  export LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu:/usr/lib:/lib:$LD_LIBRARY_PATH"
 }
 
 quirk_build_msa() {
