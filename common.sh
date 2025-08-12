@@ -18,8 +18,33 @@ check_run() {
   local STATUS=$?
   if (( $STATUS != 0 )); then
     echo "ERROR: Command failed with exit code $STATUS: $*"
+    echo "Current working directory: $(pwd)"
+    echo "Available disk space: $(df -h . | tail -1 | awk '{print $4}')"
+    echo "Available memory: $(free -h | grep "Mem:" | awk '{print $7}')"
     exit $STATUS
   fi
+}
+
+check_system_resources() {
+  show_status "Checking system resources"
+  
+  # Check available disk space (need at least 2GB)
+  local disk_available=$(df /tmp | tail -1 | awk '{print $4}')
+  if [ "$disk_available" -lt 2097152 ]; then # Less than 2GB in KB
+    echo "WARNING: Low disk space detected: $(df -h /tmp | tail -1 | awk '{print $4}') available"
+  fi
+  
+  # Check available memory (need at least 2GB)
+  local mem_available=$(free | grep "Mem:" | awk '{print $7}')
+  if [ "$mem_available" -lt 2097152 ]; then # Less than 2GB in KB
+    echo "WARNING: Low memory detected: $(free -h | grep "Mem:" | awk '{print $7}') available"
+    echo "Reducing parallel jobs from $MAKE_JOBS to 1"
+    export MAKE_JOBS=1
+  fi
+  
+  # Check CPU cores
+  local cpu_cores=$(nproc)
+  echo "System info: $cpu_cores CPU cores, $(free -h | grep "Mem:" | awk '{print $2}') total memory, $(df -h /tmp | tail -1 | awk '{print $2}') disk space"
 }
 
 shopt -s nullglob

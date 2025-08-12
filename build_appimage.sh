@@ -137,19 +137,34 @@ fi
 show_status "Downloading AppImage tools"
 mkdir -p tools
 pushd tools
-# download linuxdeploy and make it executable
-check_run wget -N "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$LINUXDEPLOY_ARCH.AppImage"
+# download linuxdeploy and make it executable with retry logic
+download_with_retry() {
+  local url="$1"
+  local filename="$(basename "$url")"
+  for i in {1..3}; do
+    if wget -N "$url"; then
+      return 0
+    fi
+    echo "Download attempt $i failed for $filename, retrying in 10 seconds..."
+    sleep 10
+  done
+  echo "Failed to download $filename after 3 attempts"
+  return 1
+}
+
+check_run download_with_retry "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$LINUXDEPLOY_ARCH.AppImage"
 # also download Qt plugin, which is needed for the Qt UI
-check_run wget -N "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUXDEPLOY_ARCH.AppImage"
+check_run download_with_retry "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUXDEPLOY_ARCH.AppImage"
 # Needed to cross compile AppImages for ARM and ARM64
-check_run wget -N "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+check_run download_with_retry "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
 # Custom Runtime File for AppImage creation
-check_run wget -N "https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGE_RUNTIME_FILE"
+check_run download_with_retry "https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGE_RUNTIME_FILE"
 popd
 
 load_quirks "$QUIRKS_FILE"
 
 create_build_directories
+check_system_resources
 rm -rf ${APP_DIR}
 mkdir -p ${APP_DIR}
 call_quirk init
@@ -179,29 +194,89 @@ install_component() {
 }
 
 build_component32() {
-  show_status "Building $1"
+  show_status "Building $1 (32-bit)"
   mkdir -p "$BUILD_DIR/$1"
   pushd "$BUILD_DIR/$1"
+  
+  # Check available memory before building
+  available_mem=$(free | grep "Mem:" | awk '{print $7}')
+  if [ "$available_mem" -lt 1048576 ]; then # Less than 1GB
+    show_status "Warning: Low memory detected ($available_mem KB), reducing parallel jobs"
+    local jobs=$((MAKE_JOBS / 2))
+    [ "$jobs" -lt 1 ] && jobs=1
+  else
+    local jobs=$MAKE_JOBS
+  fi
+  
   echo "cmake" "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1"
   PKG64_CONFIG_PATH="${PKG_CONFIG_PATH}"
   export PKG_CONFIG_PATH=""
-  check_run cmake "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1"
+  
+  # CMake configuration with timeout
+  timeout 600 cmake "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1" || {
+    echo "CMake configuration timed out or failed for $1"
+    export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+    popd
+    return 1
+  }
+  
+  # Fix library paths for 32-bit
   sed -i "s/\/usr\/lib\/x86_64-linux-gnu/\/usr\/lib\/$DEBIANTARGET32/g" CMakeCache.txt
   sed -i "s/\/usr\/include\/x86_64-linux-gnu/\/usr\/include\/$DEBIANTARGET32/g" CMakeCache.txt
-  check_run make -j${MAKE_JOBS}
+  
+  # Build with timeout and memory monitoring
+  timeout 1800 make -j${jobs} || {
+    echo "Build timed out or failed for $1, trying with single job"
+    timeout 3600 make -j1 || {
+      echo "Build failed for $1 even with single job"
+      export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+      popd
+      return 1
+    }
+  }
+  
   export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
   popd
 }
 
 build_component64() {
-  show_status "Building $1"
+  show_status "Building $1 (64-bit)"
   mkdir -p $BUILD_DIR/$1
   pushd $BUILD_DIR/$1
+  
+  # Check available memory before building
+  available_mem=$(free | grep "Mem:" | awk '{print $7}')
+  if [ "$available_mem" -lt 1048576 ]; then # Less than 1GB
+    show_status "Warning: Low memory detected ($available_mem KB), reducing parallel jobs"
+    local jobs=$((MAKE_JOBS / 2))
+    [ "$jobs" -lt 1 ] && jobs=1
+  else
+    local jobs=$MAKE_JOBS
+  fi
+  
   echo "cmake" "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1"
-  check_run cmake "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1"
+  
+  # CMake configuration with timeout
+  timeout 600 cmake "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1" || {
+    echo "CMake configuration timed out or failed for $1"
+    popd
+    return 1
+  }
+  
+  # Fix library paths
   sed -i "s/\/usr\/lib\/x86_64-linux-gnu/\/usr\/lib\/$DEBIANTARGET/g" CMakeCache.txt
   sed -i "s/\/usr\/include\/x86_64-linux-gnu/\/usr\/include\/$DEBIANTARGET/g" CMakeCache.txt
-  check_run make -j${MAKE_JOBS}
+  
+  # Build with timeout and memory monitoring
+  timeout 1800 make -j${jobs} || {
+    echo "Build timed out or failed for $1, trying with single job"
+    timeout 3600 make -j1 || {
+      echo "Build failed for $1 even with single job"
+      popd
+      return 1
+    }
+  }
+  
   popd
 }
 
@@ -321,7 +396,32 @@ check_run rm -rf "$APP_DIR/usr/lib/libgio-2.0.so.0"
 check_run rm -rf "$APP_DIR/usr/lib/libglib-2.0.so.0"
 check_run rm -rf "$APP_DIR/usr/lib/libgobject-2.0.so.0"
 
-check_run curl -L -k https://curl.se/ca/cacert.pem --output "$APP_DIR/usr/share/mcpelauncher/cacert.pem"
+# Download CA certificates with retry logic
+download_cacert() {
+  local output_file="$APP_DIR/usr/share/mcpelauncher/cacert.pem"
+  mkdir -p "$(dirname "$output_file")"
+  
+  for i in {1..3}; do
+    if curl -L -k --connect-timeout 30 --max-time 120 https://curl.se/ca/cacert.pem --output "$output_file"; then
+      echo "Successfully downloaded CA certificates"
+      return 0
+    fi
+    echo "Attempt $i failed to download CA certificates, retrying in 10 seconds..."
+    sleep 10
+  done
+  
+  echo "Failed to download CA certificates after 3 attempts, trying alternative source..."
+  # Try alternative source
+  if curl -L -k --connect-timeout 30 --max-time 120 https://raw.githubusercontent.com/bagder/ca-bundle/master/ca-bundle.crt --output "$output_file"; then
+    echo "Successfully downloaded CA certificates from alternative source"
+    return 0
+  fi
+  
+  echo "ERROR: Failed to download CA certificates from all sources"
+  return 1
+}
+
+check_run download_cacert
 
 if [ "$TARGETARCH" = "armhf" ] || [ "$TARGETARCH" = "arm64" ]
 then
