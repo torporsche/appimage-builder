@@ -32,9 +32,11 @@ load_quirks "$QUIRKS_FILE"
 create_build_directories
 call_quirk init
 
-show_status "Downloading sources"
 if [ -z "$DISABLE_MSA" ]; then
+    show_status "Downloading sources (including MSA)"
     download_repo msa https://github.com/minecraft-linux/msa-manifest.git $(cat msa.commit)
+else
+    show_status "Downloading sources (MSA disabled for simplified build)"
 fi
 download_repo mcpelauncher https://github.com/minecraft-linux/mcpelauncher-manifest.git $(cat mcpelauncher.commit)
 download_repo mcpelauncher-ui https://github.com/minecraft-linux/mcpelauncher-ui-manifest.git $(cat mcpelauncher-ui.commit)
@@ -42,12 +44,15 @@ download_repo mcpelauncher-ui https://github.com/minecraft-linux/mcpelauncher-ui
 call_quirk build_start
 
 if [ -z "$DISABLE_MSA" ]; then
+    show_status "Building MSA component"
     reset_cmake_options
     add_cmake_options -DENABLE_MSA_QT_UI=ON -DMSA_UI_PATH_DEV=OFF
     add_cmake_options -DDEB_OS_NAME=$OS_NAME
     call_quirk build_msa
     build_component msa
     install_component_cpack msa
+else
+    show_status "MSA component disabled - building without Microsoft Account support"
 fi
 
 reset_cmake_options

@@ -154,12 +154,17 @@ rm -rf ${APP_DIR}
 mkdir -p ${APP_DIR}
 call_quirk init
 
-if [ -z "$SKIP_SOURCES" ]
+if [ -z "$DISABLE_MSA" ]
 then
-    show_status "Downloading sources"
-    if [ -z "$DISABLE_MSA" ]; then
+    show_status "Downloading sources (including MSA)"
+    if [ -z "$SKIP_SOURCES" ]; then
         download_repo msa https://github.com/minecraft-linux/msa-manifest.git $(cat msa.commit)
     fi
+else
+    show_status "Downloading sources (MSA disabled for simplified build)"
+fi
+if [ -z "$SKIP_SOURCES" ]
+then
     download_repo mcpelauncher https://github.com/minecraft-linux/mcpelauncher-manifest.git $(cat "mcpelauncher${COMMIT_FILE_SUFFIX}.commit")
     download_repo mcpelauncher-ui https://github.com/minecraft-linux/mcpelauncher-ui-manifest.git $(cat "mcpelauncher-ui${COMMIT_FILE_SUFFIX}.commit")
 fi
@@ -209,6 +214,7 @@ build_component64() {
 
 if [ -z "$DISABLE_MSA" ]
 then
+    show_status "Building MSA component"
     reset_cmake_options
     add_cmake_options "${DEFAULT_CMAKE_OPTIONS[@]}" -DCMAKE_ASM_FLAGS="$MSA_CFLAGS $CFLAGS" -DCMAKE_C_FLAGS="$MSA_CFLAGS $CFLAGS" -DCMAKE_CXX_FLAGS="$MSA_CXXFLAGS $MSA_CFLAGS $CXXFLAGS $CFLAGS"
     add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_MSA_QT_UI=ON -DMSA_UI_PATH_DEV=OFF $MSA_QT6_OPT
@@ -219,6 +225,8 @@ then
     call_quirk build_msa
     build_component64 msa
     install_component msa
+else
+    show_status "MSA component disabled - building without Microsoft Account support"
 fi
 if [ -n "$DEBIANTARGET32" ] && [ -z "$DISABLE_32BIT" ]
 then
@@ -238,6 +246,10 @@ add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DMSA_DAEMON_PATH=. -DXAL_WEBVIEW_
 # Add modern build flags for better compatibility
 add_cmake_options -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release
 add_cmake_options -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
+# Disable MSA-related features when MSA is not available
+if [ -n "$DISABLE_MSA" ]; then
+    add_cmake_options -DDISABLE_MSA=ON -DMSA_DAEMON_PATH=""
+fi
 add_cmake_options "${EXTRA_CMAKE_FLAGS[@]}"
 call_quirk build_mcpelauncher
 build_component64 mcpelauncher
