@@ -409,13 +409,13 @@ then
 fi
 check_run "$LINUXDEPLOY_PLUGIN_QT_BIN" --appdir "$APP_DIR"
 
-# Bookworm AppImage doesn't have it anymore?
-if [ -z "$MSA_QT6_OPT" ]
-then
-    # libnss needs it's subdirectory to load the google login view
+# libnss needs to be included for google login support
+# Ubuntu 24.04 doesn't have the nss subdirectory, so copy individual files
+if [ -d "/usr/lib/$DEBIANTARGET/nss" ]; then
+    # Old path: libnss needs it's subdirectory to load the google login view
     check_run cp -r "/usr/lib/$DEBIANTARGET/nss" "$APP_DIR/usr/lib/"
 else
-    # libnss needs to be fullly cloned for google login above bookworm
+    # Modern path: libnss needs to be fully cloned for google login (Ubuntu 24.04+)
     check_run cp "/usr/lib/$DEBIANTARGET/libfreebl3.chk" "/usr/lib/$DEBIANTARGET/libfreebl3.so" "/usr/lib/$DEBIANTARGET/libfreeblpriv3.chk" "/usr/lib/$DEBIANTARGET/libfreeblpriv3.so" "/usr/lib/$DEBIANTARGET/libnss3.so" "/usr/lib/$DEBIANTARGET/libnssckbi.so" "/usr/lib/$DEBIANTARGET/libnssdbm3.chk" "/usr/lib/$DEBIANTARGET/libnssdbm3.so" "/usr/lib/$DEBIANTARGET/libnssutil3.so" "/usr/lib/$DEBIANTARGET/libsmime3.so" "/usr/lib/$DEBIANTARGET/libsoftokn3.chk" "/usr/lib/$DEBIANTARGET/libsoftokn3.so" "/usr/lib/$DEBIANTARGET/libssl3.so" "$APP_DIR/usr/lib/"
 fi
 # glib is excluded by appimagekit, but gmodule isn't which causes issues
