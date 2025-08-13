@@ -24,6 +24,10 @@ quirk_build_mcpelauncher() {
   add_cmake_options "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
   add_cmake_options "-DCMAKE_BUILD_TYPE=Release"
   
+  # Use system dependencies instead of downloading from external sources
+  add_cmake_options "-DUSE_OWN_CURL=OFF"
+  add_cmake_options "-DUSE_GAMECONTROLLERDB=OFF"
+  
   # x86_64 library paths
   add_cmake_options "-DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu/cmake"
   add_cmake_options "-DCMAKE_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/lib64:/lib64"
