@@ -189,7 +189,13 @@ call_quirk build_start
 
 install_component() {
   pushd "$BUILD_DIR/$1"
-  check_run make install DESTDIR="${APP_DIR}"
+  # Use appropriate build tool based on generator
+  if [ -f "build.ninja" ]; then
+    # For ninja, DESTDIR is set as environment variable
+    DESTDIR="${APP_DIR}" check_run ninja install
+  else
+    check_run make install DESTDIR="${APP_DIR}"
+  fi
   popd
 }
 
@@ -225,15 +231,27 @@ build_component32() {
   sed -i "s/\/usr\/include\/x86_64-linux-gnu/\/usr\/include\/$DEBIANTARGET32/g" CMakeCache.txt
   
   # Build with timeout and memory monitoring
-  timeout 1800 make -j${jobs} || {
-    echo "Build timed out or failed for $1, trying with single job"
-    timeout 3600 make -j1 || {
-      echo "Build failed for $1 even with single job"
-      export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
-      popd
-      return 1
+  if [ -f "build.ninja" ]; then
+    timeout 1800 ninja -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 ninja -j1 || {
+        echo "Build failed for $1 even with single job"
+        export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+        popd
+        return 1
+      }
     }
-  }
+  else
+    timeout 1800 make -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 make -j1 || {
+        echo "Build failed for $1 even with single job"
+        export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+        popd
+        return 1
+      }
+    }
+  fi
   
   export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
   popd
@@ -268,14 +286,25 @@ build_component64() {
   sed -i "s/\/usr\/include\/x86_64-linux-gnu/\/usr\/include\/$DEBIANTARGET/g" CMakeCache.txt
   
   # Build with timeout and memory monitoring
-  timeout 1800 make -j${jobs} || {
-    echo "Build timed out or failed for $1, trying with single job"
-    timeout 3600 make -j1 || {
-      echo "Build failed for $1 even with single job"
-      popd
-      return 1
+  if [ -f "build.ninja" ]; then
+    timeout 1800 ninja -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 ninja -j1 || {
+        echo "Build failed for $1 even with single job"
+        popd
+        return 1
+      }
     }
-  }
+  else
+    timeout 1800 make -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 make -j1 || {
+        echo "Build failed for $1 even with single job"
+        popd
+        return 1
+      }
+    }
+  fi
   
   popd
 }

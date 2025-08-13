@@ -106,7 +106,13 @@ build_component() {
   pushd $BUILD_DIR/$1
   echo "cmake" $CMAKE_OPTIONS "$SOURCE_DIR/$1"
   check_run cmake "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1"
-  check_run make -j${MAKE_JOBS}
+  
+  # Use appropriate build tool based on generator
+  if [ -f "build.ninja" ]; then
+    check_run ninja -j${MAKE_JOBS}
+  else
+    check_run make -j${MAKE_JOBS}
+  fi
   popd
 }
 install_component_cpack() {
