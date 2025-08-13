@@ -43,6 +43,15 @@ See [VALIDATION.md](VALIDATION.md) for complete documentation.
 ./demo-workflow.sh
 ```
 
+### Bazzite OS Compatibility Analysis
+```bash
+# Analyze official AppImage for debugging crashes on Bazzite OS
+./run_comprehensive_analysis.sh
+
+# Build with Bazzite OS compatibility (experimental)
+./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-bazzite.sh
+```
+
 ## Clean Restart Strategy
 
 This repository implements a **clean restart strategy** that removes accumulated complexity from multiple LLM agent revisions:
@@ -118,4 +127,23 @@ Game licenses can be revoked at any time by Microsoft/Mojang or Google.
 - [MSA Requirements](https://mcpelauncher.readthedocs.io/en/latest/source_build/msa.html#prerequirements) (disabled by default)
 - [Launcher Requirements](https://mcpelauncher.readthedocs.io/en/latest/source_build/launcher.html#prerequirements)
 - [UI Requirements](https://mcpelauncher.readthedocs.io/en/latest/source_build/ui.html)
+
+## Analysis Tools
+
+For debugging AppImage crashes on Bazzite OS (Fedora Atomic 42) with AMD Z1 Extreme APU:
+
+- **[Analysis Tools Documentation](ANALYSIS_TOOLS.md)** - Complete guide to debugging tools
+- `analyze_official_appimage.sh` - Downloads and analyzes official AppImage v1.1.1-802
+- `compare_builds.sh` - Compares current build with official configuration
+- `run_comprehensive_analysis.sh` - Complete analysis workflow
+- `quirks-bazzite.sh` - Bazzite OS compatibility build configuration
+
+### Quick Analysis
+```bash
+# Run complete analysis to identify crash causes
+./run_comprehensive_analysis.sh
+
+# View results
+cat /tmp/appimage_analysis/comprehensive_analysis.txt
+```
 - [Validation Framework](VALIDATION.md)
