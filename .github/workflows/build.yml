@@ -413,15 +413,14 @@ jobs:
           libzip-dev:i386 \
           libglib2.0-dev:i386
 
-    - name: Install Qt6 32-bit base components
+    - name: Install Qt5 32-bit base components
       run: |
-        # Install Qt6 base packages for i386
+        # Install Qt5 base packages for i386 (Qt6 is not available for i386)
         sudo apt-get install -y \
-          qt6-base-dev:i386 \
-          qt6-base-dev-tools:i386 \
-          qt6-tools-dev:i386 \
-          libqt6core5compat6-dev:i386 \
-          libqt6svg6-dev:i386
+          qtbase5-dev:i386 \
+          qttools5-dev:i386 \
+          qt5-qmake:i386 \
+          libqt5svg5-dev:i386 || echo "Warning: Some Qt5 i386 packages may not be available"
 
     - name: Install 32-bit graphics libraries
       run: |
@@ -498,13 +497,13 @@ jobs:
 
     - name: Build AppImage (x86)
       run: |
-        ./build_appimage.sh -t x86 -o -j ${MAKE_JOBS} -q quirks-32.sh
+        ./build_appimage.sh -t x86 -j ${MAKE_JOBS} -q quirks-32.sh
 
     - name: Upload AppImage artifacts
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: appimage-x86-qt6
+        name: appimage-x86-qt5
         path: output/*.AppImage
         retention-days: 7
 
@@ -512,6 +511,6 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: zsync-x86-qt6
+        name: zsync-x86-qt5
         path: output/*.zsync
         retention-days: 7

@@ -187,12 +187,6 @@ then
 fi
 call_quirk build_start
 
-install_component() {
-  pushd "$BUILD_DIR/$1"
-  check_run make install DESTDIR="${APP_DIR}"
-  popd
-}
-
 build_component32() {
   show_status "Building $1 (32-bit)"
   mkdir -p "$BUILD_DIR/$1"
@@ -225,15 +219,27 @@ build_component32() {
   sed -i "s/\/usr\/include\/x86_64-linux-gnu/\/usr\/include\/$DEBIANTARGET32/g" CMakeCache.txt
   
   # Build with timeout and memory monitoring
-  timeout 1800 make -j${jobs} || {
-    echo "Build timed out or failed for $1, trying with single job"
-    timeout 3600 make -j1 || {
-      echo "Build failed for $1 even with single job"
-      export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
-      popd
-      return 1
+  if [ "$CMAKE_GENERATOR" = "Ninja" ]; then
+    timeout 1800 ninja -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 ninja -j1 || {
+        echo "Build failed for $1 even with single job"
+        export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+        popd
+        return 1
+      }
     }
-  }
+  else
+    timeout 1800 make -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 make -j1 || {
+        echo "Build failed for $1 even with single job"
+        export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+        popd
+        return 1
+      }
+    }
+  fi
   
   export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
   popd
@@ -268,14 +274,25 @@ build_component64() {
   sed -i "s/\/usr\/include\/x86_64-linux-gnu/\/usr\/include\/$DEBIANTARGET/g" CMakeCache.txt
   
   # Build with timeout and memory monitoring
-  timeout 1800 make -j${jobs} || {
-    echo "Build timed out or failed for $1, trying with single job"
-    timeout 3600 make -j1 || {
-      echo "Build failed for $1 even with single job"
-      popd
-      return 1
+  if [ "$CMAKE_GENERATOR" = "Ninja" ]; then
+    timeout 1800 ninja -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 ninja -j1 || {
+        echo "Build failed for $1 even with single job"
+        popd
+        return 1
+      }
     }
-  }
+  else
+    timeout 1800 make -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 make -j1 || {
+        echo "Build failed for $1 even with single job"
+        popd
+        return 1
+      }
+    }
+  fi
   
   popd
 }

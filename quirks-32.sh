@@ -33,18 +33,11 @@ quirk_build_msa() {
   add_cmake_options "-DOPENSSL_CRYPTO_LIBRARY=/usr/lib/i386-linux-gnu/libcrypto.so"
   add_cmake_options "-DOPENSSL_SSL_LIBRARY=/usr/lib/i386-linux-gnu/libssl.so"
   
-  # Qt configuration based on available version
-  if [ -n "$MSA_QT6_OPT" ]; then
-    add_cmake_options "-DQt6_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6"
-    add_cmake_options "-DQt6GuiTools_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6GuiTools"
-    add_cmake_options "-DQt6WebEngineCore_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6WebEngineCore"
-    add_cmake_options "-DQt6WebEngineWidgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6WebEngineWidgets"
-  else
-    add_cmake_options "-DQt5_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5"
-    add_cmake_options "-DQt5Widgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5Widgets"
-    add_cmake_options "-DQt5WebEngine_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5WebEngine"
-    add_cmake_options "-DQt5WebEngineWidgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5WebEngineWidgets"
-  fi
+  # Qt configuration based on available version (force Qt5 for 32-bit)
+  add_cmake_options "-DQt5_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5"
+  add_cmake_options "-DQt5Widgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5Widgets"
+  add_cmake_options "-DQt5WebEngine_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5WebEngine"
+  add_cmake_options "-DQt5WebEngineWidgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5WebEngineWidgets"
 }
 
 quirk_build_mcpelauncher() {
@@ -97,23 +90,13 @@ quirk_build_mcpelauncher_ui() {
   add_cmake_options "-DOPENSSL_CRYPTO_LIBRARY=/usr/lib/i386-linux-gnu/libcrypto.so"
   add_cmake_options "-DOPENSSL_SSL_LIBRARY=/usr/lib/i386-linux-gnu/libssl.so"
   
-  # Qt configuration for 32-bit
-  if [ -n "$MSA_QT6_OPT" ]; then
-    add_cmake_options "-DQt6_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6"
-    add_cmake_options "-DQt6GuiTools_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6GuiTools"
-    add_cmake_options "-DQt6WebEngineCore_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6WebEngineCore"
-    add_cmake_options "-DQt6WebEngineWidgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6WebEngineWidgets"
-    add_cmake_options "-DQt6WebEngineQuick_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6WebEngineQuick"
-    add_cmake_options "-DQt6Qml_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6Qml"
-    add_cmake_options "-DQt6Quick_DIR=/usr/lib/i386-linux-gnu/cmake/Qt6Quick"
-  else
-    add_cmake_options "-DQt5_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5"
-    add_cmake_options "-DQt5Widgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5Widgets"
-    add_cmake_options "-DQt5WebEngine_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5WebEngine"
-    add_cmake_options "-DQt5WebEngineWidgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5WebEngineWidgets"
-    add_cmake_options "-DQt5Qml_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5Qml"
-    add_cmake_options "-DQt5Quick_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5Quick"
-  fi
+  # Qt configuration for 32-bit (force Qt5)
+  add_cmake_options "-DQt5_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5"
+  add_cmake_options "-DQt5Widgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5Widgets"
+  add_cmake_options "-DQt5WebEngine_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5WebEngine"
+  add_cmake_options "-DQt5WebEngineWidgets_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5WebEngineWidgets"
+  add_cmake_options "-DQt5Qml_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5Qml"
+  add_cmake_options "-DQt5Quick_DIR=/usr/lib/i386-linux-gnu/cmake/Qt5Quick"
   
   # OpenGL configuration for 32-bit
   add_cmake_options "-DOPENGL_opengl_LIBRARY=/usr/lib/i386-linux-gnu/libOpenGL.so"
@@ -135,9 +118,6 @@ quirk_build_start() {
     export CC="gcc -m32"
     show_status "Using gcc compiler with 32-bit flags"
   fi
-  
-  # Modern CMake settings
-  export CMAKE_GENERATOR="Ninja"
   
   # Improve parallel build performance
   if [ -z "$MAKE_JOBS" ]; then

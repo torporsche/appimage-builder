@@ -135,9 +135,6 @@ quirk_build_start() {
     show_status "Using g++ compiler"
   fi
   
-  # Modern CMake settings
-  export CMAKE_GENERATOR="Ninja"
-  
   # Improve parallel build performance
   if [ -z "$MAKE_JOBS" ]; then
     export MAKE_JOBS=$(nproc)

@@ -106,7 +106,13 @@ build_component() {
   pushd $BUILD_DIR/$1
   echo "cmake" $CMAKE_OPTIONS "$SOURCE_DIR/$1"
   check_run cmake "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1"
-  check_run make -j${MAKE_JOBS}
+  
+  # Use appropriate build command based on generator
+  if [ "$CMAKE_GENERATOR" = "Ninja" ]; then
+    check_run ninja -j${MAKE_JOBS}
+  else
+    check_run make -j${MAKE_JOBS}
+  fi
   popd
 }
 install_component_cpack() {
@@ -115,6 +121,17 @@ install_component_cpack() {
     echo "CPack config: $cf"
     check_run cpack --config $cf
   done
+  popd
+}
+
+install_component() {
+  pushd "$BUILD_DIR/$1"
+  # Use appropriate build command based on generator
+  if [ "$CMAKE_GENERATOR" = "Ninja" ]; then
+    check_run env DESTDIR="${APP_DIR}" ninja install
+  else
+    check_run make install DESTDIR="${APP_DIR}"
+  fi
   popd
 }
 
