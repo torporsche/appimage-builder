@@ -87,6 +87,14 @@ jobs:
       run: |
         ./build_appimage.sh -t x86_64 -m -n -j ${MAKE_JOBS} -q quirks-modern.sh
 
+    - name: Validate AppImage Quality
+      run: |
+        ./validate-appimage.sh
+
+    - name: Analyze Build Logs
+      run: |
+        ./analyze-build-logs.sh
+
     - name: Upload AppImage artifacts
       uses: actions/upload-artifact@v4
       if: always()
@@ -102,4 +110,12 @@ jobs:
         name: zsync-x86_64-qt5
         path: output/*.zsync
         retention-days: 7
+
+    - name: Upload validation reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: validation-reports
+        path: validation/*.md
+        retention-days: 30
 

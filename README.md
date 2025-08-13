@@ -19,6 +19,28 @@ This repository builds AppImages for the mcpelauncher-linux project using a simp
 
 # Build AppImage (x86_64 only, MSA disabled, no 32-bit)
 ./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-modern.sh
+
+# Validate the built AppImage
+./run-comprehensive-validation.sh
+```
+
+### Validation Framework
+
+This repository includes a comprehensive **AppImage Validation Framework** that ensures production readiness:
+
+- **Build Success Verification**: Confirms all build phases completed without errors
+- **AppImage Quality Assessment**: Binary integrity, dependency bundling, size optimization  
+- **Component Integration Testing**: mcpelauncher components, Qt5 GUI, OpenGL validation
+- **Cross-Platform Compatibility**: GLIBC version checks, library compatibility testing
+- **Security Assessment**: Basic security validation and vulnerability checks
+- **Performance Benchmarks**: Startup time, file size, extraction performance
+
+See [VALIDATION.md](VALIDATION.md) for complete documentation.
+
+### Demo Workflow
+```bash
+# See the complete build and validation workflow in action
+./demo-workflow.sh
 ```
 
 ### Bazzite OS Compatibility Analysis
@@ -65,6 +87,28 @@ sudo apt-get install -y \
   libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev
 ```
 
+## Quality Assurance
+
+### Validation Scripts
+- `validate-appimage.sh` - Primary AppImage quality validation
+- `analyze-build-logs.sh` - Build performance and optimization analysis  
+- `test-appimage-functionality.sh` - Runtime functionality testing
+- `run-comprehensive-validation.sh` - Complete validation suite
+
+### CI/CD Integration
+The GitHub Actions workflow automatically:
+1. Tests the build environment
+2. Builds x86_64 AppImage with MSA and 32-bit disabled
+3. Runs comprehensive validation suite
+4. Uploads AppImage artifacts and validation reports
+
+### Success Criteria
+- ✅ **Build completed without errors or warnings**
+- ✅ **AppImage is properly structured and functional**
+- ✅ **All mcpelauncher components are correctly integrated**
+- ✅ **Runtime execution works on target Ubuntu systems**
+- ✅ **Minecraft Launcher functionality is preserved**
+
 ## APK Policy
 
 **This project does not support APK importing.** 
@@ -102,3 +146,4 @@ For debugging AppImage crashes on Bazzite OS (Fedora Atomic 42) with AMD Z1 Extr
 # View results
 cat /tmp/appimage_analysis/comprehensive_analysis.txt
 ```
+- [Validation Framework](VALIDATION.md)
