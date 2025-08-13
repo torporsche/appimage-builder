@@ -1,14 +1,14 @@
-# AppImage Builder for mcpelauncher-linux
+# AppImage builder for mcpelauncher-linux
 
-Clean, simplified AppImage builder focusing on x86_64 architecture with modern Ubuntu 22.04 base.
+Clean, simplified AppImage builder focusing on x86_64 architecture with modern Qt6 framework support.
 
 ## Quick Start
 
-This repository builds AppImages for the mcpelauncher-linux project using a simplified, single-architecture approach.
+This repository builds AppImages for the mcpelauncher-linux project using a simplified, single-architecture approach with Qt6 for improved compatibility and modern features.
 
 ### Build Requirements
 - Ubuntu 22.04 LTS (or compatible)
-- Qt5 development libraries
+- Qt6 development libraries (default) or Qt5 (legacy)
 - clang compiler
 - Standard build tools
 
@@ -17,12 +17,35 @@ This repository builds AppImages for the mcpelauncher-linux project using a simp
 # Test your environment
 ./test-dependencies.sh
 
-# Build AppImage (x86_64 only, MSA disabled, no 32-bit)
+# Build Qt6 AppImage (x86_64 only, MSA disabled, no 32-bit) - RECOMMENDED
+./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+
+# Build Qt5 AppImage (legacy compatibility)
 ./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-modern.sh
 
 # Validate the built AppImage
 ./run-comprehensive-validation.sh
 ```
+
+## Qt6 Migration
+
+This repository now supports **Qt6 framework** as the primary build target, providing:
+
+### **Benefits of Qt6 Build:**
+- **Modern Graphics Support**: Enhanced OpenGL/Vulkan support for AMD graphics (Z1 Extreme, RDNA3)
+- **Wayland Compatibility**: Native Wayland protocol support for immutable OS environments (Bazzite, Fedora Atomic)
+- **Performance Improvements**: Qt6's optimized rendering pipeline and memory management
+- **Security Updates**: Current security patches and vulnerability fixes
+- **Future Compatibility**: Alignment with upstream mcpelauncher development direction
+
+### **Build Variants:**
+- **Qt6 (Default)**: `./build_appimage.sh -t x86_64 -m -n -o -q quirks-qt6.sh`
+- **Qt5 (Legacy)**: `./build_appimage.sh -t x86_64 -m -n -q quirks-modern.sh`
+
+### **Target Environment Compatibility:**
+- **Bazzite OS** (Fedora Atomic 42 + AMD Z1 Extreme): Qt6 with Wayland support
+- **Ubuntu 22.04+**: Both Qt6 and Qt5 supported
+- **Immutable OS**: Qt6 provides better compatibility with read-only filesystems
 
 ### Validation Framework
 
@@ -30,7 +53,7 @@ This repository includes a comprehensive **AppImage Validation Framework** that 
 
 - **Build Success Verification**: Confirms all build phases completed without errors
 - **AppImage Quality Assessment**: Binary integrity, dependency bundling, size optimization  
-- **Component Integration Testing**: mcpelauncher components, Qt5 GUI, OpenGL validation
+- **Component Integration Testing**: mcpelauncher components, Qt6/Qt5 GUI, OpenGL validation
 - **Cross-Platform Compatibility**: GLIBC version checks, library compatibility testing
 - **Security Assessment**: Basic security validation and vulnerability checks
 - **Performance Benchmarks**: Startup time, file size, extraction performance
@@ -48,8 +71,11 @@ See [VALIDATION.md](VALIDATION.md) for complete documentation.
 # Analyze official AppImage for debugging crashes on Bazzite OS
 ./run_comprehensive_analysis.sh
 
-# Build with Bazzite OS compatibility (experimental)
-./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-bazzite.sh
+# Build with Qt6 for Bazzite OS compatibility (recommended)
+./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+
+# Build with legacy Qt5 for older environments
+./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-modern.sh
 ```
 
 ## Clean Restart Strategy
@@ -58,7 +84,7 @@ This repository implements a **clean restart strategy** that removes accumulated
 
 - **Single Architecture**: x86_64 only, no multilib complexity
 - **Single Workflow**: One GitHub Actions job instead of three  
-- **Modern Base**: Ubuntu 22.04 LTS with Qt5
+- **Modern Base**: Ubuntu 22.04 LTS with Qt6 framework (Qt5 legacy support available)
 - **Components Disabled**: MSA and 32-bit builds disabled by default
 - **Files Removed**: 10 architecture/platform-specific files cleaned up
 
