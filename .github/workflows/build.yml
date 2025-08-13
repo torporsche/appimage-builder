@@ -38,22 +38,25 @@ jobs:
           libuv1-dev \
           libzip-dev \
           libglib2.0-dev \
-          qtbase5-dev \
-          qtbase5-dev-tools \
-          qttools5-dev \
-          qttools5-dev-tools \
-          qt5-qmake \
-          libqt5svg5-dev \
-          qtwebengine5-dev \
-          qtwebengine5-dev-tools \
-          libqt5webenginecore5 \
-          libqt5webenginewidgets5 \
-          qtdeclarative5-dev \
-          qml-module-qtquick-controls2 \
-          qml-module-qtquick-layouts \
-          qml-module-qtquick-window2 \
-          qml-module-qtquick-dialogs \
-          qml-module-qtwebengine \
+          qt6-base-dev \
+          qt6-base-dev-tools \
+          qt6-tools-dev \
+          qt6-tools-dev-tools \
+          qmake6 \
+          libqt6svg6-dev \
+          qt6-webengine-dev \
+          qt6-webengine-dev-tools \
+          libqt6webenginecore6 \
+          libqt6webenginewidgets6 \
+          qt6-declarative-dev \
+          qml6-module-qtquick-controls \
+          qml6-module-qtquick-layouts \
+          qml6-module-qtquick-window \
+          qml6-module-qtquick-dialogs \
+          qml6-module-qtwebengine \
+          qt6-wayland \
+          qt6-wayland-dev \
+          libqt6opengl6-dev \
           libgl1-mesa-dev \
           libegl1-mesa-dev \
           libgles2-mesa-dev \
@@ -77,15 +80,17 @@ jobs:
         echo "MAKE_JOBS=$(nproc)" >> $GITHUB_ENV
         echo "CC=clang" >> $GITHUB_ENV
         echo "CXX=clang++" >> $GITHUB_ENV
+        echo "QT_VERSION=6" >> $GITHUB_ENV
+        echo "CMAKE_QT_VERSION=Qt6" >> $GITHUB_ENV
         echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
 
     - name: Test dependencies
       run: |
         ./test-dependencies.sh
 
-    - name: Build AppImage (Qt5)
+    - name: Build AppImage (Qt6)
       run: |
-        ./build_appimage.sh -t x86_64 -m -n -j ${MAKE_JOBS} -q quirks-modern.sh
+        ./build_appimage.sh -t x86_64 -m -n -o -j ${MAKE_JOBS} -q quirks-qt6.sh
 
     - name: Validate AppImage Quality
       run: |
@@ -99,7 +104,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: appimage-x86_64-qt5
+        name: appimage-x86_64-qt6
         path: output/*.AppImage
         retention-days: 7
 
@@ -107,7 +112,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: zsync-x86_64-qt5
+        name: zsync-x86_64-qt6
         path: output/*.zsync
         retention-days: 7
 
