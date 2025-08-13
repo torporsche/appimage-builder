@@ -68,7 +68,9 @@ jobs:
           libpulse-dev \
           libudev-dev \
           libevdev-dev \
-          libnss3-dev
+          libnss3-dev \
+          libprotobuf-dev \
+          protobuf-compiler
 
     - name: Setup environment
       run: |
