@@ -250,8 +250,12 @@ run_performance_benchmarks() {
             
             # Check extracted size
             local extracted_size=$(du -sm squashfs-root 2>/dev/null | cut -f1 || echo "0")
-            local compression_ratio=$(( (extracted_size * 100) / size_mb ))
-            show_success "  Compression ratio: ${compression_ratio}% (${extracted_size}MB extracted from ${size_mb}MB)"
+            if [ $size_mb -gt 0 ]; then
+                local compression_ratio=$(( (extracted_size * 100) / size_mb ))
+                show_success "  Compression ratio: ${compression_ratio}% (${extracted_size}MB extracted from ${size_mb}MB)"
+            else
+                show_success "  Extracted size: ${extracted_size}MB"
+            fi
         else
             show_warning "  Could not test extraction performance"
         fi
