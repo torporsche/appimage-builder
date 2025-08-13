@@ -1,91 +1,102 @@
-# Build System Improvements for x86-64 Architecture
+# Clean Restart Strategy: Simplified x86_64 AppImage Builder
 
-This document outlines the improvements made to fix build job issues for x86-64 architecture builds.
+This document outlines the clean restart strategy implemented to simplify the build system while maintaining modern dependencies.
 
-## Issues Addressed
+## Strategy Overview
 
-1. **Dependency Version Mismatches**: The build was failing due to incompatible dependencies and missing packages.
-2. **Qt Compatibility Issues**: The code needed updates to work with newer versions of Qt.
-3. **CMake Configuration Issues**: Build flags needed updates for modern compilers.
-4. **Library Path Problems**: Library search paths needed correction.
+After multiple LLM agent revisions introduced complexity and potential conflicts, this implementation provides a clean restart by:
 
-## Changes Implemented
+1. **Single Architecture Focus**: x86_64 only, no multilib complexity
+2. **Simplified Workflow**: One GitHub Actions job instead of three
+3. **Disabled Components**: MSA disabled, 32-bit builds disabled  
+4. **Modern Base**: Ubuntu 22.04 LTS with Qt5
+5. **Reduced File Count**: 10 architecture/platform-specific files removed
 
-### 1. GitHub Actions Workflow (`.github/workflows/build.yml`)
+## Key Simplifications
 
-Created a comprehensive CI/CD workflow with:
+### GitHub Actions Workflow
+- **Before**: 3 separate jobs (build-x86_64, build-x86_64-qt5, build-x86)
+- **After**: 1 job (build-x86_64) on Ubuntu 22.04 with Qt5
+- **Dependencies**: Consolidated into single installation step
+- **No multilib**: Removed all i386 architecture setup and gcc-multilib
 
-- **Dual Qt Support**: Separate jobs for Qt5 (Ubuntu 20.04) and Qt6 (Ubuntu 22.04)
-- **Complete Dependencies**: All required libraries including:
-  - Qt6/Qt5 base, tools, and WebEngine components
-  - OpenGL and graphics libraries
-  - Audio libraries (ALSA, PulseAudio)
-  - Development tools (clang, ninja, cmake)
-  - 32-bit support libraries for multilib builds
-- **Dependency Validation**: Built-in testing to verify environment setup
-- **Artifact Collection**: Automatic upload of built AppImages and zsync files
+### Build Configuration
+- **MSA Component**: Disabled by default using `-m` flag
+- **32-bit Builds**: Disabled by default using `-n` flag  
+- **Qt Version**: Focus on Qt5 for mcpelauncher-ui compatibility
+- **Target**: x86_64 only using `-t x86_64` flag
 
-### 2. Enhanced Build Script (`build_appimage.sh`)
+### Simplified File Structure
+Removed architecture-specific files:
+- `arm64toolchain.txt`, `armhftoolchain.txt` (ARM support)
+- `quirks-32.sh`, `quirks-ubuntu-1604-32.sh` (32-bit support)
+- `quirks-buster.sh`, `quirks-ubuntu-1604.sh` (legacy platforms)
+- `mcpelauncher-qt6.commit`, `mcpelauncher-ui-qt6.commit` (Qt6 variants)
+- `sources.list.focal` (Ubuntu 20.04 specific)
 
-Improved the build process with:
+### Modernized quirks-modern.sh
+- **x86_64 Only**: Hardcoded x86_64 library paths, no dynamic architecture detection
+- **Qt5 Focus**: Removed Qt6 version detection and configuration
+- **No 32-bit**: Removed quirk_build_mcpelauncher32() function
+- **MSA Disabled**: quirk_build_msa() does nothing and returns immediately
 
-- **Modern Compiler Flags**: Added C++17 standard, `-fPIC`, `-O2` optimization
-- **Enhanced x86_64 Configuration**: Better library search paths and 32-bit compatibility
-- **Improved CMake Options**: Position-independent code and proper library detection
-- **Better Architecture Handling**: Enhanced library paths for both x86_64 and i386
+## Build Command
 
-### 3. Quirks Files Enhancement
+The simplified build command is:
+```bash
+./build_appimage.sh -t x86_64 -m -n -j ${MAKE_JOBS} -q quirks-modern.sh
+```
 
-#### Updated `quirks-bookworm.sh`:
-- Added Qt6 WebEngine support with proper CMake module detection
-- Modern C++17 standard and compiler flags
-- Enhanced library path configuration
+Where:
+- `-t x86_64`: Target x86_64 architecture only
+- `-m`: Disable MSA component builds
+- `-n`: Disable mcpelauncher-client32 for 64-bit targets
+- `-q quirks-modern.sh`: Use simplified quirks file
 
-#### New `quirks-modern.sh`:
-- Comprehensive compatibility fixes for Ubuntu 20.04+
-- Automatic Qt version detection (Qt5/Qt6)
-- Enhanced WebEngine integration
-- Improved library path resolution for both 64-bit and 32-bit builds
-- Modern compiler flag management with automatic clang/gcc detection
+## Dependencies (Ubuntu 22.04)
 
-### 4. Build System Infrastructure
+All dependencies installed in one step:
+```bash
+sudo apt-get install -y \
+  build-essential cmake git curl wget file ninja-build clang lld pkg-config \
+  libc6-dev libssl-dev libcurl4-openssl-dev zlib1g-dev libpng-dev \
+  libuv1-dev libzip-dev libglib2.0-dev \
+  qtbase5-dev qtbase5-dev-tools qttools5-dev qttools5-dev-tools qt5-qmake \
+  libqt5svg5-dev qtwebengine5-dev qtwebengine5-dev-tools \
+  libqt5webenginecore5 libqt5webenginewidgets5 qtdeclarative5-dev \
+  qml-module-qtquick-controls2 qml-module-qtquick-layouts \
+  qml-module-qtquick-window2 qml-module-qtquick-dialogs qml-module-qtwebengine \
+  libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
+  libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
+  libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev
+```
 
-#### Enhanced Error Handling (`common.sh`):
-- Better debugging output for failed commands
-- Clearer error messages with command details
+## Benefits
 
-#### Dependency Validation (`test-dependencies.sh`):
-- Comprehensive testing of build environment
-- Qt detection and verification
-- Library availability checks
-- 32-bit compilation support validation
+### Reduced Complexity
+- **75% fewer CI jobs** (3 → 1)
+- **10 fewer platform files** removed
+- **No multilib conflicts** or retry logic needed
+- **Single Qt version** reduces configuration complexity
 
-#### Updated `.gitignore`:
-- Prevents temporary build artifacts from being committed
-- Covers all build directories and generated files
+### Improved Maintainability  
+- **Clear focus** on x86_64 with Qt5
+- **Disabled problematic components** (MSA, 32-bit)
+- **Modern base** (Ubuntu 22.04) with current packages
+- **Simplified troubleshooting** with single build path
 
-## Technical Benefits
+### Modern Foundation
+- **Ubuntu 22.04 LTS**: Latest long-term support base
+- **Qt5**: Stable, well-supported Qt version
+- **clang**: Modern compiler with better diagnostics
+- **Ninja**: Fast build system
 
-### Dependency Management
-- **Comprehensive Package Installation**: Covers all required Qt, OpenGL, audio, and development libraries
-- **Version Compatibility**: Separate environments for Qt5 and Qt6 ensure compatibility
-- **32-bit Support**: Full multilib configuration for 32-bit launcher builds
+## Component Versions
 
-### Qt Compatibility
-- **Automatic Version Detection**: Build system adapts to available Qt version
-- **WebEngine Integration**: Proper CMake module detection for Qt WebEngine components
-- **Cross-version Support**: Works with both Qt5 and Qt6 installations
-
-### CMake Configuration
-- **Modern Standards**: C++17 compliance for better toolchain compatibility
-- **Enhanced Library Detection**: Improved CMake module finding and library path resolution
-- **Position-Independent Code**: Better shared library support
-- **Optimized Build**: Release configuration with proper optimization flags
-
-### Library Path Resolution
-- **Architecture-Specific Paths**: Proper handling of x86_64 and i386 library locations
-- **Multiple Search Paths**: Comprehensive library search configuration
-- **Dynamic Detection**: Runtime detection of available libraries and paths
+Using existing commit versions for stability:
+- `mcpelauncher.commit`: 298806f6b404afce9d9621ae689db1a9f91dcc05
+- `mcpelauncher-ui.commit`: bcf5858a63ff48414eb6d46d360787bcde6da9eb  
+- `msa.commit`: cfcebaa0845df8e0eebaae5b211e38f8d812beab (disabled)
 
 ## Usage
 
@@ -94,34 +105,15 @@ Improved the build process with:
 # Test dependencies
 ./test-dependencies.sh
 
-# Build Qt6 AppImage for x86_64
-./build_appimage.sh -t x86_64 -o -j $(nproc) -q quirks-modern.sh
-
-# Build Qt5 AppImage for x86_64
-./build_appimage.sh -t x86_64 -j $(nproc) -q quirks-modern.sh
+# Build AppImage for x86_64 only
+./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-modern.sh
 ```
 
 ### CI/CD Pipeline
 The GitHub Actions workflow automatically:
-1. Sets up the build environment with all dependencies
-2. Validates the environment with dependency tests
-3. Builds both Qt5 and Qt6 versions
-4. Uploads artifacts for distribution
+1. Sets up Ubuntu 22.04 with Qt5 dependencies
+2. Tests the build environment
+3. Builds x86_64 AppImage with MSA and 32-bit disabled
+4. Uploads artifacts
 
-## Compatibility
-
-- **Ubuntu 20.04+**: Full support with Qt5/Qt6
-- **Debian Bookworm+**: Qt6 support with enhanced configuration
-- **x86_64 Architecture**: Primary target with 32-bit launcher support
-- **Modern Toolchains**: GCC 9+ and Clang 10+ compatibility
-
-## Testing
-
-The build system includes comprehensive testing:
-- **Dependency validation** before builds
-- **CMake module detection** for Qt components
-- **Library availability checks** for all required components
-- **32-bit compilation support** verification
-- **Error handling validation** for build failures
-
-This implementation provides a robust, modern build system that addresses all identified issues while maintaining compatibility with existing component repositories and providing better debugging capabilities.
+This implementation provides a clean, maintainable foundation for AppImage builds while removing accumulated technical debt from multiple revision cycles.
