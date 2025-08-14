@@ -9,14 +9,14 @@ After multiple LLM agent revisions introduced complexity and potential conflicts
 1. **Single Architecture Focus**: x86_64 only, no multilib complexity
 2. **Simplified Workflow**: One GitHub Actions job instead of three
 3. **Disabled Components**: MSA disabled, 32-bit builds disabled  
-4. **Modern Base**: Ubuntu 22.04 LTS with Qt5
+4. **Modern Base**: Ubuntu 22.04 LTS with Qt6
 5. **Reduced File Count**: 10 architecture/platform-specific files removed
 
 ## Key Simplifications
 
 ### GitHub Actions Workflow
 - **Before**: 3 separate jobs (build-x86_64, build-x86_64-qt5, build-x86)
-- **After**: 1 job (build-x86_64) on Ubuntu 22.04 with Qt5
+- **After**: 1 job (build-x86_64) on Ubuntu 22.04 with Qt6
 - **Dependencies**: Consolidated into single installation step
 - **No multilib**: Removed all i386 architecture setup and gcc-multilib
 
@@ -34,9 +34,9 @@ Removed architecture-specific files:
 - `mcpelauncher-qt6.commit`, `mcpelauncher-ui-qt6.commit` (Qt6 variants)
 - `sources.list.focal` (Ubuntu 20.04 specific)
 
-### Modernized quirks-modern.sh
+### Modernized quirks-qt6.sh
 - **x86_64 Only**: Hardcoded x86_64 library paths, no dynamic architecture detection
-- **Qt5 Focus**: Removed Qt6 version detection and configuration
+- **Qt6 Focus**: Comprehensive Qt6 component configuration with Wayland support
 - **No 32-bit**: Removed quirk_build_mcpelauncher32() function
 - **MSA Disabled**: quirk_build_msa() does nothing and returns immediately
 
@@ -61,14 +61,16 @@ sudo apt-get install -y \
   build-essential cmake git curl wget file ninja-build clang lld pkg-config \
   libc6-dev libssl-dev libcurl4-openssl-dev zlib1g-dev libpng-dev \
   libuv1-dev libzip-dev libglib2.0-dev \
-  qtbase5-dev qtbase5-dev-tools qttools5-dev qttools5-dev-tools qt5-qmake \
-  libqt5svg5-dev qtwebengine5-dev qtwebengine5-dev-tools \
-  libqt5webenginecore5 libqt5webenginewidgets5 qtdeclarative5-dev \
-  qml-module-qtquick-controls2 qml-module-qtquick-layouts \
-  qml-module-qtquick-window2 qml-module-qtquick-dialogs qml-module-qtwebengine \
+  qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qmake6 \
+  libqt6svg6-dev qt6-webengine-dev qt6-webengine-dev-tools \
+  libqt6webenginecore6 libqt6webenginewidgets6 qt6-declarative-dev \
+  qml6-module-qtquick-controls qml6-module-qtquick-layouts \
+  qml6-module-qtquick-window qml6-module-qtquick-dialogs qml6-module-qtwebengine \
+  qt6-wayland qt6-wayland-dev libqt6opengl6-dev \
   libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
   libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
-  libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev
+  libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev \
+  libprotobuf-dev protobuf-compiler
 ```
 
 ## Benefits
@@ -80,7 +82,7 @@ sudo apt-get install -y \
 - **Single Qt version** reduces configuration complexity
 
 ### Improved Maintainability  
-- **Clear focus** on x86_64 with Qt5
+- **Clear focus** on x86_64 with Qt6
 - **Disabled problematic components** (MSA, 32-bit)
 - **Modern base** (Ubuntu 22.04) with current packages
 - **Simplified troubleshooting** with single build path
@@ -116,4 +118,4 @@ The GitHub Actions workflow automatically:
 3. Builds x86_64 AppImage with MSA and 32-bit disabled
 4. Uploads artifacts
 
-This implementation provides a clean, maintainable foundation for AppImage builds while removing accumulated technical debt from multiple revision cycles.
+This implementation provides a clean, maintainable foundation for AppImage builds while removing accumulated technical debt from multiple revision cycles.rom multiple revision cycles.

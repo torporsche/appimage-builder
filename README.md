@@ -78,6 +78,20 @@ See [VALIDATION.md](VALIDATION.md) for complete documentation.
 ./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-modern.sh
 ```
 
+### Local Development Setup
+
+For local Qt6 development, install dependencies first:
+```bash
+# Install Qt6 dependencies for local development
+./install-qt6-deps.sh
+
+# Test dependencies
+./test-dependencies.sh
+
+# Build Qt6 AppImage locally
+./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+```
+
 ## Clean Restart Strategy
 
 This repository implements a **clean restart strategy** that removes accumulated complexity from multiple LLM agent revisions:
