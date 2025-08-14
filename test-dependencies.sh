@@ -69,16 +69,19 @@ else
     echo "Qt5 CMake detection: FAILED"
 fi
 
-# Test Qt6 detection via CMake  
+# Test Qt6 detection via CMake with more comprehensive component testing
 echo "Testing Qt6 detection..."
 cat > CMakeLists.txt << 'EOF'
 cmake_minimum_required(VERSION 3.16)
 project(TestQt6)
-find_package(Qt6 COMPONENTS Core Widgets QUIET)
+find_package(Qt6 COMPONENTS Core Widgets WebEngine WebEngineWidgets WaylandClient QUIET)
 if(Qt6_FOUND)
     message(STATUS "Qt6 found: ${Qt6_VERSION}")
     message(STATUS "Qt6 Core found: ${Qt6Core_FOUND}")
     message(STATUS "Qt6 Widgets found: ${Qt6Widgets_FOUND}")
+    message(STATUS "Qt6 WebEngine found: ${Qt6WebEngine_FOUND}")
+    message(STATUS "Qt6 WebEngineWidgets found: ${Qt6WebEngineWidgets_FOUND}")
+    message(STATUS "Qt6 WaylandClient found: ${Qt6WaylandClient_FOUND}")
 else()
     message(STATUS "Qt6 not found")
 endif()
@@ -171,6 +174,32 @@ echo "Checking for common build issues..."
 # Check for conflicting packages
 if dpkg -l | grep -q "libssl.*dev.*i386" && dpkg -l | grep -q "libssl.*dev" | grep -v "i386"; then
     echo "WARNING: Potential SSL dev package conflict detected"
+fi
+
+# Check for Qt6 Wayland plugins (important for native Wayland support)
+echo "Testing Qt6 Wayland plugin availability..."
+QT6_PLUGINS_PATH="/usr/lib/x86_64-linux-gnu/qt6/plugins"
+if [ -d "$QT6_PLUGINS_PATH" ]; then
+    echo "Qt6 plugins directory: OK"
+    
+    # Check platform plugins
+    if [ -f "$QT6_PLUGINS_PATH/platforms/libqwayland-egl.so" ] && \
+       [ -f "$QT6_PLUGINS_PATH/platforms/libqwayland-generic.so" ]; then
+        echo "Qt6 Wayland platform plugins: OK"
+    else
+        echo "Qt6 Wayland platform plugins: NOT FOUND"
+    fi
+    
+    # Check Wayland-specific plugin directories
+    for plugin_dir in wayland-decoration-client wayland-graphics-integration-client wayland-shell-integration; do
+        if [ -d "$QT6_PLUGINS_PATH/$plugin_dir" ]; then
+            echo "Qt6 $plugin_dir plugins: OK"
+        else
+            echo "Qt6 $plugin_dir plugins: NOT FOUND"
+        fi
+    done
+else
+    echo "Qt6 plugins directory: NOT FOUND"
 fi
 
 # Check disk space
