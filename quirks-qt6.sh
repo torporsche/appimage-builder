@@ -1,6 +1,19 @@
 # Qt6 Ubuntu 22.04 quirks for x86_64 builds with modern Qt6 framework
 # Focuses on single architecture builds with Qt6 for improved compatibility
 
+# Helper function to validate Qt6 CMake paths before using them
+validate_and_add_qt6_cmake_dir() {
+  local component_name="$1"
+  local cmake_dir="$2"
+  
+  if [ -d "$cmake_dir" ]; then
+    add_cmake_options "-D${component_name}_DIR=$cmake_dir"
+    show_status "Qt6 $component_name: Found at $cmake_dir"
+  else
+    show_status "Qt6 $component_name: Not found at $cmake_dir - skipping"
+  fi
+}
+
 quirk_init() {
   # Set up modern compiler environment for x86_64 only
   export CXXFLAGS="-std=c++17 -fPIC $CXXFLAGS"
@@ -36,11 +49,11 @@ quirk_build_mcpelauncher() {
   add_cmake_options "-DOPENGL_opengl_LIBRARY=/usr/lib/x86_64-linux-gnu/libOpenGL.so"
   add_cmake_options "-DOPENGL_gl_LIBRARY=/usr/lib/x86_64-linux-gnu/libGL.so"
   
-  # Qt6 configuration for modern framework
-  add_cmake_options "-DQt6_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6"
-  add_cmake_options "-DQt6Core_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core"
-  add_cmake_options "-DQt6Widgets_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Widgets"
-  add_cmake_options "-DQt6GuiTools_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6GuiTools"
+  # Qt6 configuration for modern framework - validate paths before using
+  validate_and_add_qt6_cmake_dir "Qt6" "/usr/lib/x86_64-linux-gnu/cmake/Qt6"
+  validate_and_add_qt6_cmake_dir "Qt6Core" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Core"
+  validate_and_add_qt6_cmake_dir "Qt6Widgets" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Widgets"
+  validate_and_add_qt6_cmake_dir "Qt6GuiTools" "/usr/lib/x86_64-linux-gnu/cmake/Qt6GuiTools"
 }
 
 quirk_build_mcpelauncher_ui() {
@@ -50,26 +63,26 @@ quirk_build_mcpelauncher_ui() {
   add_cmake_options "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
   add_cmake_options "-DCMAKE_BUILD_TYPE=Release"
   
-  # Qt6 configuration for x86_64 with full WebEngine and Wayland support
-  add_cmake_options "-DQt6_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6"
-  add_cmake_options "-DQt6Core_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Core"
-  add_cmake_options "-DQt6Widgets_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Widgets"
-  add_cmake_options "-DQt6Gui_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Gui"
-  add_cmake_options "-DQt6WebEngine_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6WebEngine"
-  add_cmake_options "-DQt6WebEngineCore_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6WebEngineCore"
-  add_cmake_options "-DQt6WebEngineWidgets_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6WebEngineWidgets"
-  add_cmake_options "-DQt6Qml_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Qml"
-  add_cmake_options "-DQt6Quick_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6Quick"
-  add_cmake_options "-DQt6GuiTools_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6GuiTools"
+  # Qt6 configuration for x86_64 with full WebEngine and Wayland support - validate paths
+  validate_and_add_qt6_cmake_dir "Qt6" "/usr/lib/x86_64-linux-gnu/cmake/Qt6"
+  validate_and_add_qt6_cmake_dir "Qt6Core" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Core"
+  validate_and_add_qt6_cmake_dir "Qt6Widgets" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Widgets"
+  validate_and_add_qt6_cmake_dir "Qt6Gui" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Gui"
+  validate_and_add_qt6_cmake_dir "Qt6WebEngine" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WebEngine"
+  validate_and_add_qt6_cmake_dir "Qt6WebEngineCore" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WebEngineCore"
+  validate_and_add_qt6_cmake_dir "Qt6WebEngineWidgets" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WebEngineWidgets"
+  validate_and_add_qt6_cmake_dir "Qt6Qml" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Qml"
+  validate_and_add_qt6_cmake_dir "Qt6Quick" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Quick"
+  validate_and_add_qt6_cmake_dir "Qt6GuiTools" "/usr/lib/x86_64-linux-gnu/cmake/Qt6GuiTools"
   
   # Qt6 Wayland support for immutable OS environments like Bazzite
-  add_cmake_options "-DQt6WaylandClient_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6WaylandClient"
+  validate_and_add_qt6_cmake_dir "Qt6WaylandClient" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WaylandClient"
   
   # OpenGL configuration for x86_64 with improved AMD graphics support
   add_cmake_options "-DOPENGL_opengl_LIBRARY=/usr/lib/x86_64-linux-gnu/libOpenGL.so"
   add_cmake_options "-DOPENGL_gl_LIBRARY=/usr/lib/x86_64-linux-gnu/libGL.so"
   add_cmake_options "-DOPENGL_glx_LIBRARY=/usr/lib/x86_64-linux-gnu/libGLX.so"
-  add_cmake_options "-DQt6OpenGL_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6OpenGL"
+  validate_and_add_qt6_cmake_dir "Qt6OpenGL" "/usr/lib/x86_64-linux-gnu/cmake/Qt6OpenGL"
   
   # x86_64 library search paths
   add_cmake_options "-DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu/cmake"

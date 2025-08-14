@@ -400,12 +400,27 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH+"${LD_LIBRARY_PATH}:"}"$APP_DIR/usr/lib
 check_run "$LINUXDEPLOY_BIN" --appdir "$APP_DIR" -i "$BUILD_DIR/mcpelauncher-ui-qt.svg" -d "$BUILD_DIR/mcpelauncher-ui-qt.desktop"
 
 export QML_SOURCES_PATHS="$SOURCE_DIR/mcpelauncher-ui/mcpelauncher-ui-qt/qml/:$SOURCE_DIR/mcpelauncher/mcpelauncher-webview"
-if [ -n "$MSA_QT6_OPT" ]
+# Bundle Qt6 Wayland plugins for native Wayland support - check for Qt6 build indicators
+if [ -n "$MSA_QT6_OPT" ] || [ "$COMMIT_FILE_SUFFIX" = "-qt6" ]
 then
+    show_status "Bundling Qt6 Wayland platform plugins for native Wayland support"
     export EXTRA_PLATFORM_PLUGINS="libqwayland-egl.so;libqwayland-generic.so"
     export EXTRA_QT_PLUGINS="wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration"
     check_run mkdir -p "$APP_DIR/usr/plugins/"
-    check_run cp -R "/usr/lib/$DEBIANTARGET/qt6/plugins/wayland-decoration-client" "/usr/lib/$DEBIANTARGET/qt6/plugins/wayland-graphics-integration-client" "/usr/lib/$DEBIANTARGET/qt6/plugins/wayland-shell-integration" "$APP_DIR/usr/plugins/"
+    
+    # Validate Wayland plugin paths before copying
+    wayland_plugins_base="/usr/lib/$DEBIANTARGET/qt6/plugins"
+    if [ -d "$wayland_plugins_base/wayland-decoration-client" ] && \
+       [ -d "$wayland_plugins_base/wayland-graphics-integration-client" ] && \
+       [ -d "$wayland_plugins_base/wayland-shell-integration" ]; then
+        check_run cp -R "$wayland_plugins_base/wayland-decoration-client" \
+                       "$wayland_plugins_base/wayland-graphics-integration-client" \
+                       "$wayland_plugins_base/wayland-shell-integration" \
+                       "$APP_DIR/usr/plugins/"
+        show_status "Qt6 Wayland plugins bundled successfully"
+    else
+        show_status "Qt6 Wayland plugin directories not found - native Wayland support may be limited"
+    fi
 fi
 check_run "$LINUXDEPLOY_PLUGIN_QT_BIN" --appdir "$APP_DIR"
 
