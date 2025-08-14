@@ -94,9 +94,35 @@ This repository implements a **clean restart strategy** that removes accumulated
 - `-t x86_64`: Target x86_64 architecture only
 - `-m`: Disable MSA component builds  
 - `-n`: Disable 32-bit mcpelauncher-client builds
-- `-q quirks-modern.sh`: Use simplified build quirks
+- `-q quirks-qt6.sh`: Use Qt6-optimized build quirks
 
 ### Dependencies Installation (Ubuntu 22.04)
+
+For Qt6 builds (recommended):
+```bash
+# Install Qt6 dependencies using the provided script
+./install-qt6-deps.sh
+```
+
+Or manually:
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  build-essential cmake git curl wget file ninja-build clang lld pkg-config \
+  libc6-dev libssl-dev libcurl4-openssl-dev zlib1g-dev libpng-dev \
+  libuv1-dev libzip-dev libglib2.0-dev \
+  qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qmake6 \
+  libqt6svg6-dev qt6-webengine-dev qt6-webengine-dev-tools \
+  libqt6webenginecore6 libqt6webenginewidgets6 qt6-declarative-dev \
+  qml6-module-qtquick-controls qml6-module-qtquick-layouts \
+  qml6-module-qtquick-window qml6-module-qtquick-dialogs qml6-module-qtwebengine \
+  qt6-wayland qt6-wayland-dev libqt6opengl6-dev \
+  libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
+  libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
+  libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev
+```
+
+For Qt5 builds (legacy):
 ```bash
 sudo apt-get update
 sudo apt-get install -y \

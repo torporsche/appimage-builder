@@ -9,7 +9,7 @@ After multiple LLM agent revisions introduced complexity and potential conflicts
 1. **Single Architecture Focus**: x86_64 only, no multilib complexity
 2. **Simplified Workflow**: One GitHub Actions job instead of three
 3. **Disabled Components**: MSA disabled, 32-bit builds disabled  
-4. **Modern Base**: Ubuntu 22.04 LTS with Qt5
+4. **Modern Base**: Ubuntu 22.04 LTS with Qt6
 5. **Reduced File Count**: 10 architecture/platform-specific files removed
 
 ## Key Simplifications
@@ -51,7 +51,8 @@ Where:
 - `-t x86_64`: Target x86_64 architecture only
 - `-m`: Disable MSA component builds
 - `-n`: Disable mcpelauncher-client32 for 64-bit targets
-- `-q quirks-modern.sh`: Use simplified quirks file
+- `-o`: Build Qt6 AppImage with Wayland support  
+- `-q quirks-qt6.sh`: Use Qt6-optimized quirks file
 
 ## Dependencies (Ubuntu 22.04)
 
@@ -81,7 +82,7 @@ sudo apt-get install -y \
 - **Single Qt version** reduces configuration complexity
 
 ### Improved Maintainability  
-- **Clear focus** on x86_64 with Qt5
+- **Clear focus** on x86_64 with Qt6
 - **Disabled problematic components** (MSA, 32-bit)
 - **Modern base** (Ubuntu 22.04) with current packages
 - **Simplified troubleshooting** with single build path
@@ -107,7 +108,7 @@ Using existing commit versions for stability:
 ./test-dependencies.sh
 
 # Build AppImage for x86_64 only
-./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-modern.sh
+./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
 ```
 
 ### CI/CD Pipeline
@@ -117,4 +118,4 @@ The GitHub Actions workflow automatically:
 3. Builds x86_64 AppImage with MSA and 32-bit disabled
 4. Uploads artifacts
 
-This implementation provides a clean, maintainable foundation for AppImage builds while removing accumulated technical debt from multiple revision cycles.
+This implementation provides a clean, maintainable foundation for AppImage builds while removing accumulated technical debt from multiple revision cycles.vision cycles.
