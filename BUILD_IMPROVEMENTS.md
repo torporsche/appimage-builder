@@ -62,7 +62,7 @@ sudo apt-get install -y \
   libc6-dev libssl-dev libcurl4-openssl-dev zlib1g-dev libpng-dev \
   libuv1-dev libzip-dev libglib2.0-dev \
   qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qmake6 \
-  libqt6svg6-dev qt6-webengine-dev qt6-webengine-dev-tools \
+  qt6-svg-dev qt6-webengine-dev qt6-webengine-dev-tools \
   libqt6webenginecore6 libqt6webenginewidgets6 qt6-declarative-dev \
   qml6-module-qtquick-controls qml6-module-qtquick-layouts \
   qml6-module-qtquick-window qml6-module-qtquick-dialogs qml6-module-qtwebengine \

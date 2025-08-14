@@ -80,7 +80,7 @@ install_qt6_deps() {
         qt6-tools-dev \
         qt6-tools-dev-tools \
         qmake6 \
-        libqt6svg6-dev \
+        qt6-svg-dev \
         libqt6opengl6-dev
     
     # Install Qt6 WebEngine
