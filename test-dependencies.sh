@@ -188,6 +188,7 @@ if [ -d "$QT6_PLUGINS_PATH" ]; then
         echo "Qt6 Wayland platform plugins: OK"
     else
         echo "Qt6 Wayland platform plugins: NOT FOUND"
+        echo "  Install with: sudo apt-get install qt6-wayland qt6-wayland-dev"
     fi
     
     # Check Wayland-specific plugin directories
@@ -200,6 +201,8 @@ if [ -d "$QT6_PLUGINS_PATH" ]; then
     done
 else
     echo "Qt6 plugins directory: NOT FOUND"
+    echo "  Qt6 development packages may not be installed."
+    echo "  Run: sudo ./install-qt6-dependencies.sh"
 fi
 
 # Check disk space

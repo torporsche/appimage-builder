@@ -94,7 +94,7 @@ This repository implements a **clean restart strategy** that removes accumulated
 - `-t x86_64`: Target x86_64 architecture only
 - `-m`: Disable MSA component builds  
 - `-n`: Disable 32-bit mcpelauncher-client builds
-- `-q quirks-modern.sh`: Use simplified build quirks
+- `-q quirks-qt6.sh`: Use Qt6 build quirks with Wayland support
 
 ### Dependencies Installation (Ubuntu 22.04)
 ```bash
