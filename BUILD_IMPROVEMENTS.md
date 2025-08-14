@@ -61,14 +61,16 @@ sudo apt-get install -y \
   build-essential cmake git curl wget file ninja-build clang lld pkg-config \
   libc6-dev libssl-dev libcurl4-openssl-dev zlib1g-dev libpng-dev \
   libuv1-dev libzip-dev libglib2.0-dev \
-  qtbase5-dev qtbase5-dev-tools qttools5-dev qttools5-dev-tools qt5-qmake \
-  libqt5svg5-dev qtwebengine5-dev qtwebengine5-dev-tools \
-  libqt5webenginecore5 libqt5webenginewidgets5 qtdeclarative5-dev \
-  qml-module-qtquick-controls2 qml-module-qtquick-layouts \
-  qml-module-qtquick-window2 qml-module-qtquick-dialogs qml-module-qtwebengine \
+  qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qmake6 \
+  libqt6svg6-dev qt6-webengine-dev qt6-webengine-dev-tools \
+  libqt6webenginecore6 libqt6webenginewidgets6 qt6-declarative-dev \
+  qml6-module-qtquick-controls qml6-module-qtquick-layouts \
+  qml6-module-qtquick-window qml6-module-qtquick-dialogs qml6-module-qtwebengine \
+  qt6-wayland qt6-wayland-dev libqt6opengl6-dev \
   libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
-  libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
-  libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev
+  libx11-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
+  libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev \
+  libprotobuf-dev protobuf-compiler
 ```
 
 ## Benefits

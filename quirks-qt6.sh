@@ -19,6 +19,10 @@ quirk_init() {
   export CXXFLAGS="-std=c++17 -fPIC $CXXFLAGS"
   export CFLAGS="-fPIC $CFLAGS"
   
+  # Set Qt6 build flag to ensure Wayland plugins are bundled
+  export MSA_QT6_OPT="-DQT_VERSION=6"
+  export COMMIT_FILE_SUFFIX="-qt6"
+  
   # Set up x86_64 library paths
   export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig"
   export DEBIANTARGET="x86_64-linux-gnu"
