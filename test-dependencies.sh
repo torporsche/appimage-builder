@@ -214,8 +214,95 @@ if [ "$MEM_AVAILABLE" -lt 1048576 ]; then # Less than 1GB
     echo "WARNING: Low available memory: ${MEM_AVAILABLE}KB available"
 fi
 
+# Qt6-specific validation for AppImage builds
+echo ""
+echo "=== Qt6 Validation for AppImage Builds ==="
+
+# Check for Qt6 Wayland development packages
+echo "Testing Qt6 Wayland development packages..."
+qt6_wayland_libs=(
+    "/usr/lib/x86_64-linux-gnu/libQt6WaylandClient.so"
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-decoration-client"
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-graphics-integration-client"
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-shell-integration"
+)
+
+for lib in "${qt6_wayland_libs[@]}"; do
+    if [ -e "$lib" ]; then
+        echo "✅ Qt6 Wayland component: $lib"
+    else
+        echo "❌ Qt6 Wayland component: $lib (missing)"
+    fi
+done
+
+# Check Qt6 plugin directories that are needed for AppImage bundling
+echo ""
+echo "Testing Qt6 plugin directories for AppImage bundling..."
+qt6_plugin_dirs=(
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/platforms"
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-decoration-client"
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-graphics-integration-client" 
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-shell-integration"
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/xcbglintegrations"
+)
+
+for dir in "${qt6_plugin_dirs[@]}"; do
+    if [ -d "$dir" ]; then
+        plugin_count=$(find "$dir" -name "*.so" 2>/dev/null | wc -l)
+        echo "✅ Qt6 plugin directory: $dir ($plugin_count plugins)"
+    else
+        echo "❌ Qt6 plugin directory: $dir (missing)"
+    fi
+done
+
+# Test Qt6 CMake configuration specifically for AppImage requirements
+echo ""
+echo "Testing Qt6 CMake configuration for AppImage builds..."
+cat > /tmp/CMakeLists.txt << 'EOF'
+cmake_minimum_required(VERSION 3.16)
+project(TestQt6AppImage)
+
+# Test essential Qt6 components needed for mcpelauncher-ui AppImage
+find_package(Qt6 REQUIRED COMPONENTS 
+    Core 
+    Widgets 
+    OpenGL
+)
+
+# Optional components that may not be available on all systems
+find_package(Qt6 COMPONENTS 
+    WebEngine 
+    WebEngineWidgets 
+    WaylandClient 
+    QUIET
+)
+
+message(STATUS "Qt6 AppImage build test: SUCCESS")
+message(STATUS "Qt6 Version: ${Qt6_VERSION}")
+message(STATUS "Qt6 Installation: ${Qt6_DIR}")
+message(STATUS "Qt6 Wayland: ${Qt6WaylandClient_FOUND}")
+message(STATUS "Qt6 WebEngine: ${Qt6WebEngine_FOUND}")
+EOF
+
+if cmake -S /tmp -B /tmp/build_qt6_appimage >/dev/null 2>&1; then
+    echo "✅ Qt6 CMake AppImage configuration: SUCCESS"
+    cmake -S /tmp -B /tmp/build_qt6_appimage 2>&1 | grep "Qt6" || true
+else
+    echo "❌ Qt6 CMake AppImage configuration: FAILED"
+fi
+
+echo ""
+echo "=== Dependency Validation Summary ==="
+echo ""
+echo "If Qt6 Wayland components are missing, install with:"
+echo "  sudo apt-get install qt6-wayland qt6-wayland-dev"
+echo ""
+echo "For complete Qt6 setup, run:"
+echo "  ./install-qt6-deps.sh"
+echo ""
+
 # Cleanup
 cd /
-rm -rf "$TEST_DIR"
+rm -rf "$TEST_DIR" /tmp/CMakeLists.txt /tmp/build_qt6_appimage 2>/dev/null || true
 
 echo "=== Dependency Test Complete ==="

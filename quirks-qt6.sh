@@ -22,6 +22,11 @@ quirk_init() {
   # Set up x86_64 library paths
   export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig"
   export DEBIANTARGET="x86_64-linux-gnu"
+  
+  # Set MSA_QT6_OPT flag to enable Qt6 Wayland plugin bundling
+  export MSA_QT6_OPT=1
+  
+  show_status "Qt6 build environment ready for x86_64 (modern framework with Wayland support)"
 }
 
 quirk_build_msa() {
@@ -116,5 +121,5 @@ quirk_build_start() {
   export QT_VERSION=6
   export CMAKE_QT_VERSION=Qt6
   
-  show_status "Qt6 build environment ready for x86_64 (modern framework)"
+  show_status "Qt6 UI build environment ready for x86_64 (WebEngine and Wayland support)"
 }
