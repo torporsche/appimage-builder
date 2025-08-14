@@ -68,6 +68,9 @@ See [VALIDATION.md](VALIDATION.md) for complete documentation.
 
 ### Bazzite OS Compatibility Analysis
 ```bash
+# Install Qt6 development environment (if not already installed)
+./install-qt6-dependencies.sh
+
 # Analyze official AppImage for debugging crashes on Bazzite OS
 ./run_comprehensive_analysis.sh
 

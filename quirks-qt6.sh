@@ -68,7 +68,6 @@ quirk_build_mcpelauncher_ui() {
   validate_and_add_qt6_cmake_dir "Qt6Core" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Core"
   validate_and_add_qt6_cmake_dir "Qt6Widgets" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Widgets"
   validate_and_add_qt6_cmake_dir "Qt6Gui" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Gui"
-  validate_and_add_qt6_cmake_dir "Qt6WebEngine" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WebEngine"
   validate_and_add_qt6_cmake_dir "Qt6WebEngineCore" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WebEngineCore"
   validate_and_add_qt6_cmake_dir "Qt6WebEngineWidgets" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WebEngineWidgets"
   validate_and_add_qt6_cmake_dir "Qt6Qml" "/usr/lib/x86_64-linux-gnu/cmake/Qt6Qml"
