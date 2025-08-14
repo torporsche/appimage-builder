@@ -6,8 +6,13 @@ quirk_init() {
   # Set up environment for Bazzite OS (Fedora Atomic 42) compatibility
   show_status "Initializing Bazzite OS compatibility quirks for AMD Z1 Extreme APU..."
   
+  # Enable GLIBC compatibility mode automatically for Bazzite OS
+  export GLIBC_COMPAT="1"
+  export _GLIBCXX_USE_CXX11_ABI=0
+  show_status "GLIBC compatibility mode enabled for Bazzite OS"
+  
   # Target older GLIBC for compatibility (2.31 instead of 2.35+)
-  export CXXFLAGS="-std=c++17 -fPIC -D_GNU_SOURCE $CXXFLAGS"
+  export CXXFLAGS="-std=c++17 -fPIC -D_GNU_SOURCE -D_GLIBCXX_USE_CXX11_ABI=0 $CXXFLAGS"
   export CFLAGS="-fPIC -D_GNU_SOURCE $CFLAGS"
   
   # AMD Z1 Extreme APU specific graphics configuration
@@ -43,7 +48,7 @@ quirk_build_mcpelauncher() {
   
   # GLIBC compatibility for Fedora Atomic 42
   add_cmake_options "-DGLIBC_COMPAT=ON"
-  add_cmake_options "-DCMAKE_CXX_FLAGS=-D_GNU_SOURCE"
+  add_cmake_options "-DCMAKE_CXX_FLAGS=-D_GNU_SOURCE -D_GLIBCXX_USE_CXX11_ABI=0"
   
   # Use system dependencies for better Fedora compatibility
   add_cmake_options "-DUSE_OWN_CURL=OFF"

@@ -71,11 +71,39 @@ create_build_directories() {
   mkdir -p $OUTPUT_DIR
 }
 
+# Enhanced git operations with retry logic
+check_run_with_retry() {
+  local max_attempts=3
+  local attempt=1
+  local delay=5
+  
+  while [ $attempt -le $max_attempts ]; do
+    echo "Running (attempt $attempt/$max_attempts): $*"
+    if "$@"; then
+      return 0
+    fi
+    
+    local STATUS=$?
+    if [ $attempt -eq $max_attempts ]; then
+      echo "ERROR: Command failed after $max_attempts attempts with exit code $STATUS: $*"
+      echo "Current working directory: $(pwd)"
+      echo "Available disk space: $(df -h . | tail -1 | awk '{print $4}')"
+      echo "Available memory: $(free -h | grep "Mem:" | awk '{print $7}')"
+      exit $STATUS
+    fi
+    
+    echo "Command failed, retrying in $delay seconds..."
+    sleep $delay
+    ((attempt++))
+    ((delay *= 2))  # Exponential backoff
+  done
+}
+
 download_repo() {
   if [ -d $SOURCE_DIR/$1 ]; then
     show_status "Updating $2"
     pushd $SOURCE_DIR/$1
-    check_run git fetch origin $3
+    check_run_with_retry git fetch origin $3
     check_run git reset --hard FETCH_HEAD
     check_run git submodule update --init --recursive
     popd
@@ -84,12 +112,22 @@ download_repo() {
     mkdir -p $SOURCE_DIR/$1
     pushd $SOURCE_DIR/$1
     check_run git init
-    check_run git remote add origin $2
-    check_run git fetch origin $3
+    check_run_with_retry git remote add origin $2
+    check_run_with_retry git fetch origin $3
     check_run git reset --hard FETCH_HEAD
     check_run git submodule update --init --recursive
     popd
   fi
+  
+  # Validate downloaded commit hash
+  pushd $SOURCE_DIR/$1
+  local actual_commit=$(git rev-parse HEAD)
+  if [ "$actual_commit" != "$3" ]; then
+    echo "WARNING: Downloaded commit $actual_commit doesn't match expected $3"
+  else
+    show_status "Successfully downloaded $1 at commit $3"
+  fi
+  popd
 }
 
 reset_cmake_options() {

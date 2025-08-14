@@ -12,8 +12,9 @@ MSA_QT6_OPT=""
 OUTPUT_SUFFIX=""
 TAGNAME=""
 EXTRA_CMAKE_FLAGS=()
+GLIBC_COMPAT=""
 
-while getopts "h?q:j:u:i:k:t:n?m?o?s?p:r:l:" opt; do
+while getopts "h?q:j:u:i:k:t:n?m?o?s?p:r:l:g?" opt; do
     case "$opt" in
     h|\?)
         echo "build.sh"
@@ -30,6 +31,7 @@ while getopts "h?q:j:u:i:k:t:n?m?o?s?p:r:l:" opt; do
         echo "-s  Skip sync sources"
         echo "-r  TAGNAME of the release"
         echo "-l  extracmakeflags for launcher"
+        echo "-g  Enable GLIBC compatibility mode (_GLIBCXX_USE_CXX11_ABI=0)"
         exit 0
         ;;
     j)  MAKE_JOBS=$OPTARG
@@ -61,6 +63,8 @@ while getopts "h?q:j:u:i:k:t:n?m?o?s?p:r:l:" opt; do
         ;;
     l)  EXTRA_CMAKE_FLAGS+=("$OPTARG")
         ;;
+    g)  GLIBC_COMPAT="1"
+        ;;
     esac
 done
 
@@ -83,6 +87,15 @@ CFLAGS32="-DNDEBUG -fPIC -O2 $CFLAGS32"
 CFLAGS="-DNDEBUG -fPIC -O2 $CFLAGS"
 CXXFLAGS32="-I ${PWD}/curlappimageca -std=c++17 -fPIC -O2 $CXXFLAGS32"
 CXXFLAGS="-I ${PWD}/curlappimageca -std=c++17 -fPIC -O2 $CXXFLAGS"
+
+# Add GLIBC compatibility mode if requested
+if [ -n "$GLIBC_COMPAT" ]; then
+    show_status "Enabling GLIBC compatibility mode (_GLIBCXX_USE_CXX11_ABI=0)"
+    CXXFLAGS32="-D_GLIBCXX_USE_CXX11_ABI=0 $CXXFLAGS32"
+    CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 $CXXFLAGS"
+    export _GLIBCXX_USE_CXX11_ABI=0
+fi
+
 MCPELAUNCHERUI_CXXFLAGS="-DLAUNCHER_INIT_PATCH=\"if(!getenv(\\\"QTWEBENGINE_CHROMIUM_FLAGS\\\")) putenv(\\\"QTWEBENGINE_CHROMIUM_FLAGS=--no-sandbox\\\");\""
 if [ -n "$DISABLE_32BIT" ]
 then
