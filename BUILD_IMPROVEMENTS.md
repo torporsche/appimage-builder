@@ -9,7 +9,7 @@ After multiple LLM agent revisions introduced complexity and potential conflicts
 1. **Single Architecture Focus**: x86_64 only, no multilib complexity
 2. **Simplified Workflow**: One GitHub Actions job instead of three
 3. **Disabled Components**: MSA disabled, 32-bit builds disabled  
-4. **Modern Base**: Ubuntu 22.04 LTS with Qt5
+4. **Modern Base**: Ubuntu 22.04 LTS with Qt6
 5. **Reduced File Count**: 10 architecture/platform-specific files removed
 
 ## Key Simplifications
@@ -34,9 +34,9 @@ Removed architecture-specific files:
 - `mcpelauncher-qt6.commit`, `mcpelauncher-ui-qt6.commit` (Qt6 variants)
 - `sources.list.focal` (Ubuntu 20.04 specific)
 
-### Modernized quirks-modern.sh
+### Modernized quirks-qt6.sh
 - **x86_64 Only**: Hardcoded x86_64 library paths, no dynamic architecture detection
-- **Qt5 Focus**: Removed Qt6 version detection and configuration
+- **Qt6 Focus**: Modern Qt6 framework with enhanced graphics and Wayland support
 - **No 32-bit**: Removed quirk_build_mcpelauncher32() function
 - **MSA Disabled**: quirk_build_msa() does nothing and returns immediately
 
@@ -61,11 +61,12 @@ sudo apt-get install -y \
   build-essential cmake git curl wget file ninja-build clang lld pkg-config \
   libc6-dev libssl-dev libcurl4-openssl-dev zlib1g-dev libpng-dev \
   libuv1-dev libzip-dev libglib2.0-dev \
-  qtbase5-dev qtbase5-dev-tools qttools5-dev qttools5-dev-tools qt5-qmake \
-  libqt5svg5-dev qtwebengine5-dev qtwebengine5-dev-tools \
-  libqt5webenginecore5 libqt5webenginewidgets5 qtdeclarative5-dev \
-  qml-module-qtquick-controls2 qml-module-qtquick-layouts \
-  qml-module-qtquick-window2 qml-module-qtquick-dialogs qml-module-qtwebengine \
+  qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools qmake6 \
+  libqt6svg6-dev qt6-webengine-dev qt6-webengine-dev-tools \
+  libqt6webenginecore6 libqt6webenginewidgets6 qt6-declarative-dev \
+  qml6-module-qtquick-controls qml6-module-qtquick-layouts \
+  qml6-module-qtquick-window qml6-module-qtquick-dialogs qml6-module-qtwebengine \
+  qt6-wayland qt6-wayland-dev libqt6opengl6-dev \
   libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
   libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
   libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev
@@ -80,14 +81,14 @@ sudo apt-get install -y \
 - **Single Qt version** reduces configuration complexity
 
 ### Improved Maintainability  
-- **Clear focus** on x86_64 with Qt5
+- **Clear focus** on x86_64 with Qt6
 - **Disabled problematic components** (MSA, 32-bit)
 - **Modern base** (Ubuntu 22.04) with current packages
 - **Simplified troubleshooting** with single build path
 
 ### Modern Foundation
 - **Ubuntu 22.04 LTS**: Latest long-term support base
-- **Qt5**: Stable, well-supported Qt version
+- **Qt6**: Modern, current Qt version with Wayland and improved graphics support
 - **clang**: Modern compiler with better diagnostics
 - **Ninja**: Fast build system
 
@@ -106,7 +107,7 @@ Using existing commit versions for stability:
 ./test-dependencies.sh
 
 # Build AppImage for x86_64 only
-./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-modern.sh
+./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
 ```
 
 ### CI/CD Pipeline
