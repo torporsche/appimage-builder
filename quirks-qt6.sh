@@ -116,5 +116,8 @@ quirk_build_start() {
   export QT_VERSION=6
   export CMAKE_QT_VERSION=Qt6
   
+  # Set MSA_QT6_OPT flag to enable Qt6 Wayland plugin bundling
+  export MSA_QT6_OPT="-DQT_VERSION=6"
+  
   show_status "Qt6 build environment ready for x86_64 (modern framework)"
 }
