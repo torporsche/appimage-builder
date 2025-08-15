@@ -14,6 +14,23 @@ TAGNAME=""
 EXTRA_CMAKE_FLAGS=()
 GLIBC_COMPAT=""
 
+# Read a commit pin with suffix fallback (e.g., name-qt6.commit -> name.commit)
+get_commit_pin() {
+    local base="$1"
+    local with_suffix="${base}${COMMIT_FILE_SUFFIX}.commit"
+    local plain="${base}.commit"
+    if [[ -f "${with_suffix}" ]]; then
+        tr -d '\n\r' < "${with_suffix}"
+        return 0
+    fi
+    if [[ -f "${plain}" ]]; then
+        tr -d '\n\r' < "${plain}"
+        return 0
+    fi
+    echo "ERROR: Missing commit pin file: ${with_suffix} or ${plain}" >&2
+    exit 2
+}
+
 while getopts "h?q:j:u:i:k:t:n?m?o?s?p:r:l:g?" opt; do
     case "$opt" in
     h|\?)
@@ -185,9 +202,14 @@ call_quirk init
 if [ -z "$SKIP_SOURCES" ]
 then
     show_status "Downloading sources"
-    download_repo msa https://github.com/minecraft-linux/msa-manifest.git $(cat msa.commit)
-    download_repo mcpelauncher https://github.com/minecraft-linux/mcpelauncher-manifest.git $(cat "mcpelauncher${COMMIT_FILE_SUFFIX}.commit")
-    download_repo mcpelauncher-ui https://github.com/minecraft-linux/mcpelauncher-ui-manifest.git $(cat "mcpelauncher-ui${COMMIT_FILE_SUFFIX}.commit")
+    # Only fetch MSA if enabled (default is disabled)
+    if [ -z "$DISABLE_MSA" ]; then
+        download_repo msa https://github.com/minecraft-linux/msa-manifest.git "$(get_commit_pin msa)"
+    else
+        show_status "Skipping MSA source download (disabled)"
+    fi
+    download_repo mcpelauncher https://github.com/minecraft-linux/mcpelauncher-manifest.git "$(get_commit_pin mcpelauncher)"
+    download_repo mcpelauncher-ui https://github.com/minecraft-linux/mcpelauncher-ui-manifest.git "$(get_commit_pin mcpelauncher-ui)"
 fi
 download_repo versionsdb https://github.com/minecraft-linux/mcpelauncher-versiondb.git $(cat versionsdb.txt)
 if [ -n "$UPDATE_INFORMATION" ]
