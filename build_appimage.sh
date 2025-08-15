@@ -70,6 +70,7 @@ while getopts "h?q:j:u:i:k:t:n?m?o?s?p:r:l:g?" opt; do
     m)  DISABLE_MSA="1"
         ;;
     o)  COMMIT_FILE_SUFFIX="-qt6"
+        OUTPUT_SUFFIX="-qt6"
         MSA_QT6_OPT="-DQT_VERSION=6"
         ;;
     p)  OUTPUT_SUFFIX="$OPTARG"
@@ -97,6 +98,14 @@ add_default_cmake_options() {
 }
 add_default_cmake_options32() {
   DEFAULT_CMAKE_OPTIONS32=("${DEFAULT_CMAKE_OPTIONS32[@]}" "$@")
+}
+
+# Defensive: ensure only -D style options are forwarded to CMake for MSA
+sanitize_msa_qt_opt() {
+  if [[ -n "$MSA_QT6_OPT" && "${MSA_QT6_OPT}" != -D* ]]; then
+    show_status "Ignoring invalid MSA Qt option: ${MSA_QT6_OPT} (expected -D*); using Qt auto-detect"
+    MSA_QT6_OPT=""
+  fi
 }
 
 # Improved compiler flags for modern toolchain compatibility
@@ -346,6 +355,7 @@ build_component64() {
 
 if [ -z "$DISABLE_MSA" ]
 then
+    sanitize_msa_qt_opt
     reset_cmake_options
     add_cmake_options "${DEFAULT_CMAKE_OPTIONS[@]}" -DCMAKE_ASM_FLAGS="$MSA_CFLAGS $CFLAGS" -DCMAKE_C_FLAGS="$MSA_CFLAGS $CFLAGS" -DCMAKE_CXX_FLAGS="$MSA_CXXFLAGS $MSA_CFLAGS $CXXFLAGS $CFLAGS"
     add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_MSA_QT_UI=ON -DMSA_UI_PATH_DEV=OFF $MSA_QT6_OPT
@@ -515,7 +525,7 @@ if [ -n "$UPDATE_INFORMATION" ]
 then
     UPDATE_INFORMATION_ARGS=("-u" "${UPDATE_INFORMATION}")
 fi
-check_run "$APPIMAGETOOL_BIN" --comp xz --runtime-file "tools/$APPIMAGE_RUNTIME_FILE" "${UPDATE_INFORMATION_ARGS[@]}" "$APP_DIR" "$OUTPUT"
+check_run "$APPIMAGETOOL_BIN" --comp xz --runtime-file "tools/$APPIMAGE_RUNTIME_FILE" "${UPDATE_INFORMATION_ARGS[@]:-}" "$APP_DIR" "$OUTPUT"
 
 mkdir -p output/
 check_run mv Minecraft*.AppImage output/
