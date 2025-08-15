@@ -173,32 +173,37 @@ then
     export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH"
 fi
 
-show_status "Downloading AppImage tools"
-mkdir -p tools
-pushd tools
-# download linuxdeploy and make it executable with retry logic
-download_with_retry() {
-  local url="$1"
-  local filename="$(basename "$url")"
-  for i in {1..3}; do
-    if wget -N "$url"; then
-      return 0
-    fi
-    echo "Download attempt $i failed for $filename, retrying in 10 seconds..."
-    sleep 10
-  done
-  echo "Failed to download $filename after 3 attempts"
-  return 1
-}
+# Skip tool downloads in DRY_RUN_CONFIGURE mode for CI reliability
+if [ -n "${DRY_RUN_CONFIGURE:-}" ]; then
+  show_status "DRY_RUN_CONFIGURE: Skipping AppImage tool downloads"
+else
+  show_status "Downloading AppImage tools"
+  mkdir -p tools
+  pushd tools
+  # download linuxdeploy and make it executable with retry logic
+  download_with_retry() {
+    local url="$1"
+    local filename="$(basename "$url")"
+    for i in {1..3}; do
+      if wget -N "$url"; then
+        return 0
+      fi
+      echo "Download attempt $i failed for $filename, retrying in 10 seconds..."
+      sleep 10
+    done
+    echo "Failed to download $filename after 3 attempts"
+    return 1
+  }
 
-check_run download_with_retry "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$LINUXDEPLOY_ARCH.AppImage"
-# also download Qt plugin, which is needed for the Qt UI
-check_run download_with_retry "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUXDEPLOY_ARCH.AppImage"
-# Needed to cross compile AppImages for ARM and ARM64
-check_run download_with_retry "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
-# Custom Runtime File for AppImage creation
-check_run download_with_retry "https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGE_RUNTIME_FILE"
-popd
+  check_run download_with_retry "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$LINUXDEPLOY_ARCH.AppImage"
+  # also download Qt plugin, which is needed for the Qt UI
+  check_run download_with_retry "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-$LINUXDEPLOY_ARCH.AppImage"
+  # Needed to cross compile AppImages for ARM and ARM64
+  check_run download_with_retry "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+  # Custom Runtime File for AppImage creation
+  check_run download_with_retry "https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGE_RUNTIME_FILE"
+  popd
+fi
 
 load_quirks "$QUIRKS_FILE"
 
