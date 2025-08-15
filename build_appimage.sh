@@ -232,6 +232,12 @@ fi
 call_quirk build_start
 
 install_component() {
+  # No-op for dry-run configuration mode
+  if [ -n "${DRY_RUN_CONFIGURE:-}" ]; then
+    show_status "DRY_RUN_CONFIGURE: Skipping installation for $1"
+    return 0
+  fi
+  
   pushd "$BUILD_DIR/$1"
   # Use appropriate build tool based on generator
   if [ -f "build.ninja" ]; then
@@ -269,6 +275,14 @@ build_component32() {
     popd
     return 1
   }
+  
+  # Early return for dry-run configuration mode
+  if [ -n "${DRY_RUN_CONFIGURE:-}" ]; then
+    show_status "DRY_RUN_CONFIGURE: CMake configuration completed for $1 (32-bit), skipping build"
+    export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+    popd
+    return 0
+  fi
   
   # Fix library paths for 32-bit
   sed -i "s/\/usr\/lib\/x86_64-linux-gnu/\/usr\/lib\/$DEBIANTARGET32/g" CMakeCache.txt
@@ -324,6 +338,13 @@ build_component64() {
     popd
     return 1
   }
+  
+  # Early return for dry-run configuration mode
+  if [ -n "${DRY_RUN_CONFIGURE:-}" ]; then
+    show_status "DRY_RUN_CONFIGURE: CMake configuration completed for $1 (64-bit), skipping build"
+    popd
+    return 0
+  fi
   
   # Fix library paths
   sed -i "s/\/usr\/lib\/x86_64-linux-gnu/\/usr\/lib\/$DEBIANTARGET/g" CMakeCache.txt
@@ -399,6 +420,12 @@ call_quirk build_mcpelauncher_ui
 
 build_component64 mcpelauncher-ui
 install_component mcpelauncher-ui
+
+# Early exit for dry-run configuration mode
+if [ -n "${DRY_RUN_CONFIGURE:-}" ]; then
+  show_status "DRY_RUN_CONFIGURE: CMake configuration completed for all components, skipping packaging"
+  exit 0
+fi
 
 show_status "Packaging"
 
