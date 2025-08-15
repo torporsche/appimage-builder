@@ -154,6 +154,24 @@ The GitHub Actions workflow automatically:
 3. Runs comprehensive validation suite
 4. Uploads AppImage artifacts and validation reports
 
+#### CI Matrix Testing
+The repository includes a CI matrix workflow that tests critical build configurations:
+- **Qt Versions**: Qt5 (legacy) and Qt6 (modern)
+- **MSA Options**: Enabled and disabled
+- **Fast Configuration Testing**: Uses `DRY_RUN_CONFIGURE=1` mode to test CMake configuration without full compilation
+
+**DRY_RUN_CONFIGURE Mode:**
+```bash
+# Test CMake configuration only (no compilation/packaging)
+DRY_RUN_CONFIGURE=1 ./build_appimage.sh -t x86_64 -n -m -j $(nproc) -q quirks-qt6.sh
+```
+This mode performs CMake configuration for all components but skips:
+- Compilation (ninja/make build)
+- Installation (make install)  
+- Packaging (AppImage creation)
+
+Perfect for CI validation of build configuration changes without the overhead of full compilation.
+
 ### Success Criteria
 - ✅ **Build completed without errors or warnings**
 - ✅ **AppImage is properly structured and functional**
