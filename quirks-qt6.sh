@@ -46,6 +46,24 @@ quirk_build_mcpelauncher() {
   add_cmake_options "-DUSE_OWN_CURL=OFF"
   add_cmake_options "-DUSE_GAMECONTROLLERDB=OFF"
   
+  # Force Qt6 usage for components that default to Qt5
+  add_cmake_options "-DQT_VERSION_MAJOR=6"
+  add_cmake_options "-DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu/cmake;/usr/lib/x86_64-linux-gnu"
+  
+  # Set Qt6 tool paths explicitly
+  add_cmake_options "-DQt6_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6"
+  add_cmake_options "-DQT_MOC_EXECUTABLE=/usr/lib/qt6/libexec/moc"
+  add_cmake_options "-DQT_UIC_EXECUTABLE=/usr/lib/qt6/libexec/uic"
+  add_cmake_options "-DQT_RCC_EXECUTABLE=/usr/lib/qt6/libexec/rcc"
+  
+  # Disable webview component to avoid Qt5 dependency issues - webview uses Qt5 hardcoded
+  add_cmake_options "-DENABLE_WEBVIEW=OFF"
+  add_cmake_options "-DBUILD_WEBVIEW=OFF"
+  
+  # Set Qt6 environment variables to override Qt5 detection
+  export QT_VERSION=6
+  export CMAKE_QT_VERSION=Qt6
+  
   # x86_64 library paths
   add_cmake_options "-DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu/cmake"
   add_cmake_options "-DCMAKE_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/lib64:/lib64"
@@ -67,6 +85,16 @@ quirk_build_mcpelauncher_ui() {
   add_cmake_options "-DCMAKE_CXX_STANDARD=17" "-DCMAKE_C_STANDARD=11"
   add_cmake_options "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
   add_cmake_options "-DCMAKE_BUILD_TYPE=Release"
+  
+  # Force Qt6 usage for all components
+  add_cmake_options "-DQT_VERSION_MAJOR=6"
+  add_cmake_options "-DUSE_QT6=ON"
+  
+  # Set Qt6 tool paths explicitly
+  add_cmake_options "-DQt6_DIR=/usr/lib/x86_64-linux-gnu/cmake/Qt6"
+  add_cmake_options "-DQT_MOC_EXECUTABLE=/usr/lib/qt6/libexec/moc"
+  add_cmake_options "-DQT_UIC_EXECUTABLE=/usr/lib/qt6/libexec/uic"
+  add_cmake_options "-DQT_RCC_EXECUTABLE=/usr/lib/qt6/libexec/rcc"
   
   # Qt6 configuration for x86_64 with full WebEngine and Wayland support - validate paths
   validate_and_add_qt6_cmake_dir "Qt6" "/usr/lib/x86_64-linux-gnu/cmake/Qt6"
@@ -117,9 +145,10 @@ quirk_build_start() {
     export MAKE_JOBS=$(nproc)
   fi
   
-  # Qt6 specific environment variables
+  # Qt6 specific environment variables and paths
   export QT_VERSION=6
   export CMAKE_QT_VERSION=Qt6
+  export PATH="/usr/lib/qt6/bin:/usr/lib/qt6/libexec:$PATH"
   
   show_status "Qt6 UI build environment ready for x86_64 (WebEngine and Wayland support)"
 }
