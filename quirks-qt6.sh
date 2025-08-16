@@ -14,6 +14,48 @@ validate_and_add_qt6_cmake_dir() {
   fi
 }
 
+# Function to detect Qt6 components and configure fallbacks
+configure_qt6_wayland_fallbacks() {
+  local wayland_available=false
+  
+  # Check for Wayland support
+  if [ -d "/usr/lib/x86_64-linux-gnu/cmake/Qt6WaylandClient" ] || \
+     [ -f "/usr/lib/x86_64-linux-gnu/libQt6WaylandClient.so" ]; then
+    wayland_available=true
+    show_status "Qt6 Wayland support detected"
+  else
+    show_status "Qt6 Wayland support not available - using X11 fallback"
+  fi
+  
+  # Configure Wayland environment variables
+  if [ "$wayland_available" = "true" ]; then
+    # Native Wayland support
+    add_cmake_options "-DENABLE_WAYLAND=ON"
+    export QT_QPA_PLATFORM="wayland;xcb"
+    export QT_WAYLAND_FORCE_DPI=96
+    export QT_AUTO_SCREEN_SCALE_FACTOR=0
+  else
+    # X11 fallback
+    add_cmake_options "-DENABLE_WAYLAND=OFF"
+    export QT_QPA_PLATFORM="xcb"
+    export QT_AUTO_SCREEN_SCALE_FACTOR=0
+  fi
+}
+
+# Function to configure OpenGL ES fallbacks
+configure_opengl_fallbacks() {
+  # Check for hardware OpenGL support
+  if [ -f "/usr/lib/x86_64-linux-gnu/libGL.so" ]; then
+    show_status "Hardware OpenGL support available"
+    add_cmake_options "-DFORCE_SOFTWARE_RENDERING=OFF"
+  else
+    show_status "Hardware OpenGL not detected - enabling software fallback"
+    add_cmake_options "-DFORCE_SOFTWARE_RENDERING=ON"
+    export LIBGL_ALWAYS_SOFTWARE=1
+    export MESA_GL_VERSION_OVERRIDE=3.3
+  fi
+}
+
 quirk_init() {
   # Set up modern compiler environment for x86_64 only
   export CXXFLAGS="-std=c++17 -fPIC $CXXFLAGS"
@@ -25,6 +67,15 @@ quirk_init() {
   
   # Set MSA_QT6_OPT flag to enable Qt6 Wayland plugin bundling
   export MSA_QT6_OPT=1
+  
+  # Configure Qt6 Wayland and OpenGL fallbacks
+  configure_qt6_wayland_fallbacks
+  configure_opengl_fallbacks
+  
+  # Configure environment variables for Wayland/X11 compatibility
+  export QT_LOGGING_RULES="qt.qpa.wayland.debug=false"
+  export QT_WAYLAND_DISABLE_WINDOWDECORATION=0
+  export QT_SCALE_FACTOR_ROUNDING_POLICY=RoundPreferFloor
   
   show_status "Qt6 build environment ready for x86_64 (modern framework with Wayland support)"
 }
@@ -110,12 +161,19 @@ quirk_build_mcpelauncher_ui() {
   
   # Qt6 Wayland support for immutable OS environments like Bazzite
   validate_and_add_qt6_cmake_dir "Qt6WaylandClient" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WaylandClient"
+  validate_and_add_qt6_cmake_dir "Qt6WaylandCompositor" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WaylandCompositor"
+  
+  # Additional Wayland integration components (optional)
+  if [ -d "/usr/lib/x86_64-linux-gnu/cmake/Qt6WaylandGlobalPrivate" ]; then
+    validate_and_add_qt6_cmake_dir "Qt6WaylandGlobalPrivate" "/usr/lib/x86_64-linux-gnu/cmake/Qt6WaylandGlobalPrivate"
+  fi
   
   # OpenGL configuration for x86_64 with improved AMD graphics support
   add_cmake_options "-DOPENGL_opengl_LIBRARY=/usr/lib/x86_64-linux-gnu/libOpenGL.so"
   add_cmake_options "-DOPENGL_gl_LIBRARY=/usr/lib/x86_64-linux-gnu/libGL.so"
   add_cmake_options "-DOPENGL_glx_LIBRARY=/usr/lib/x86_64-linux-gnu/libGLX.so"
   validate_and_add_qt6_cmake_dir "Qt6OpenGL" "/usr/lib/x86_64-linux-gnu/cmake/Qt6OpenGL"
+  validate_and_add_qt6_cmake_dir "Qt6OpenGLWidgets" "/usr/lib/x86_64-linux-gnu/cmake/Qt6OpenGLWidgets"
   
   # x86_64 library search paths
   add_cmake_options "-DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu/cmake"
