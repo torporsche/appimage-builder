@@ -1,6 +1,6 @@
 # AppImage Validation Report
 
-**Generated:** Sun Aug 17 21:41:33 UTC 2025
+**Generated:** Sun Aug 17 21:45:27 UTC 2025
 **Target Architecture:** x86_64
 **Build System:** Ubuntu 22.04 LTS with Qt5
 
@@ -14,3 +14,4 @@ This report provides comprehensive validation results for the mcpelauncher-linux
 
 - ✅ **Output Directory**: Found at /home/runner/work/appimage-builder/appimage-builder/output
 - ❌ **AppImage Files**: None found
+  - **Troubleshooting**: Check build logs, verify dependencies, retry build

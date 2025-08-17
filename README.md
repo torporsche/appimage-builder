@@ -33,6 +33,43 @@ This repository builds AppImages for the mcpelauncher-linux project using a stre
 ./build_gles30_validator.sh all
 ```
 
+### Output Directory Convention
+
+The build system follows official AppImage packaging conventions by placing all built artifacts in the `./output` directory:
+
+```bash
+# Output directory structure after successful build:
+./output/
+├── Minecraft_Bedrock_Launcher-x86_64-<version>.<build>.AppImage    # Main AppImage
+├── version.x86_64.zsync                                            # Update metadata
+└── version.amd64.zsync                                             # Alternative arch metadata
+```
+
+#### Output Directory Behavior
+- **Automatic Creation**: The `./output` directory is automatically created by `./build_appimage.sh`
+- **Consistent Location**: All AppImages are reliably placed in `./output` regardless of build configuration
+- **Validation Required**: Use `./validate-appimage.sh` to verify output directory exists and contains valid AppImages
+- **Clean Builds**: Remove `./output` before building to ensure fresh artifacts
+
+#### Troubleshooting Output Issues
+```bash
+# Missing output directory
+./validate-appimage.sh
+# ❌ Output directory not found: ./output
+# → Run './build_appimage.sh' to create output directory and build AppImages
+
+# Empty output directory  
+./validate-appimage.sh
+# ❌ Output directory is empty: ./output
+# → Run './build_appimage.sh' to build AppImages
+# → Ensure build completes successfully without errors
+
+# Verify output contents
+ls -la ./output/
+du -h ./output/*.AppImage    # Check AppImage sizes
+file ./output/*.AppImage     # Verify AppImage format
+```
+
 ### Build Troubleshooting Workflow
 
 #### Quick Dependency Check
