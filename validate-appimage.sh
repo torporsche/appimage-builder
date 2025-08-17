@@ -76,9 +76,22 @@ validate_build_success() {
     if [ -d "$OUTPUT_DIR" ]; then
         show_success "Output directory exists: $OUTPUT_DIR"
         log_to_report "- ✅ **Output Directory**: Found at $OUTPUT_DIR"
+        
+        # Check if output directory is empty
+        if [ -z "$(ls -A "$OUTPUT_DIR" 2>/dev/null)" ]; then
+            show_error "Output directory is empty: $OUTPUT_DIR"
+            show_error "→ Run './build_appimage.sh' to build AppImages"
+            show_error "→ Ensure build completes successfully without errors"
+            log_to_report "- ❌ **Output Directory**: Empty (no files found)"
+            log_to_report "  - **Action Required**: Run build script to generate AppImages"
+            return 1
+        fi
     else
         show_error "Output directory not found: $OUTPUT_DIR"
+        show_error "→ Run './build_appimage.sh' to create output directory and build AppImages"
+        show_error "→ The output directory follows official AppImage packaging convention"
         log_to_report "- ❌ **Output Directory**: Not found at $OUTPUT_DIR"
+        log_to_report "  - **Action Required**: Run build script to create directory and generate AppImages"
         return 1
     fi
     
@@ -95,7 +108,11 @@ validate_build_success() {
         done
     else
         show_error "No AppImage files found in output directory"
+        show_error "→ Build may have failed - check build logs for errors"
+        show_error "→ Run './build_appimage.sh' with appropriate flags"
+        show_error "→ Ensure all dependencies are installed with './test-dependencies.sh'"
         log_to_report "- ❌ **AppImage Files**: None found"
+        log_to_report "  - **Troubleshooting**: Check build logs, verify dependencies, retry build"
         return 1
     fi
     

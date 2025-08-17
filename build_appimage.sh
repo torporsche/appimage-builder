@@ -378,15 +378,15 @@ then
 fi
 check_run "$APPIMAGETOOL_BIN" --comp xz --runtime-file "tools/$APPIMAGE_RUNTIME_FILE" "${UPDATE_INFORMATION_ARGS[@]:-}" "$APP_DIR" "$OUTPUT"
 
-mkdir -p output/
-check_run mv Minecraft*.AppImage output/
+# Move AppImage and zsync files to output directory (created by create_build_directories)
+check_run mv Minecraft*.AppImage "$OUTPUT_DIR"/
 if [ "${TAGNAME}" = "-" ]
 then
-    cat *.zsync > "output/version${OUTPUT_SUFFIX}.${ARCH}.zsync"
-    cat *.zsync > "output/version${OUTPUT_SUFFIX}.${TARGETARCH}.zsync"
+    cat *.zsync > "$OUTPUT_DIR/version${OUTPUT_SUFFIX}.${ARCH}.zsync"
+    cat *.zsync > "$OUTPUT_DIR/version${OUTPUT_SUFFIX}.${TARGETARCH}.zsync"
 else
-    cat *.zsync | sed -e "s/\(URL: \)\(.*\)/\1..\/${TAGNAME}\/\2/g" > "output/version${OUTPUT_SUFFIX}.${ARCH}.zsync"
-    cat *.zsync | sed -e "s/\(URL: \)\(.*\)/\1..\/${TAGNAME}\/\2/g" > "output/version${OUTPUT_SUFFIX}.${TARGETARCH}.zsync"
+    cat *.zsync | sed -e "s/\(URL: \)\(.*\)/\1..\/${TAGNAME}\/\2/g" > "$OUTPUT_DIR/version${OUTPUT_SUFFIX}.${ARCH}.zsync"
+    cat *.zsync | sed -e "s/\(URL: \)\(.*\)/\1..\/${TAGNAME}\/\2/g" > "$OUTPUT_DIR/version${OUTPUT_SUFFIX}.${TARGETARCH}.zsync"
 fi
 rm *.zsync
 
