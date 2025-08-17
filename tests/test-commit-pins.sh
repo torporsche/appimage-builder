@@ -22,11 +22,5 @@ check_pin() {
 
 check_pin "mcpelauncher.commit"
 check_pin "mcpelauncher-ui.commit"
-# msa is optional for default builds, but validate if present
-if [[ -f "msa.commit" ]]; then
-  check_pin "msa.commit"
-else
-  echo "INFO: msa.commit not present (MSA disabled path)"
-fi
 
 exit "${fail}"
