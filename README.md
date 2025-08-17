@@ -163,19 +163,52 @@ echo $? # Should be 0 for success
 
 **CI/CD Integration:**
 ```bash
-# For automated builds, use fail-fast validation
+# For automated builds, use fail-fast validation with proper working directory
 set -e
+
+# Ensure we're in the repository root directory
+cd "${GITHUB_WORKSPACE:-$(pwd)}"
 
 # Pre-build validation
 ./integration-validation.sh pre
 ./test-dependencies.sh
 
-# Build process
-./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+# Build process (creates ./output directory and AppImages)
+./build_appimage.sh -t x86_64 -n -j $(nproc) -q quirks-qt6.sh
 
-# Post-build validation
+# Troubleshooting: List output directory contents for CI debugging
+echo "=== Output Directory Contents ==="
+if [ -d "./output" ]; then
+  ls -la ./output/
+  echo "Output directory size: $(du -sh ./output/)"
+else
+  echo "❌ Output directory ./output does not exist"
+  echo "This indicates the build step failed to complete successfully"
+  exit 1
+fi
+
+# Post-build validation (requires ./output directory and AppImages)
 ./validate-appimage.sh
 ./integration-validation.sh post
+```
+
+**Workflow Dependencies and Troubleshooting:**
+```bash
+# CRITICAL: build_appimage.sh MUST run before validate-appimage.sh
+# The validation script requires:
+# 1. ./output directory to exist
+# 2. *.AppImage files in ./output directory
+# 3. Proper working directory (repository root)
+
+# Common CI failures and solutions:
+# ❌ "Output directory not found" -> build_appimage.sh didn't run or failed
+# ❌ "Output directory is empty" -> build completed but no AppImage created
+# ❌ "No AppImage files found" -> AppImage creation failed silently
+
+# Debugging workflow:
+./build_appimage.sh -t x86_64 -n -j $(nproc) -q quirks-qt6.sh
+ls -la ./output/  # Should show *.AppImage and *.zsync files
+./validate-appimage.sh  # Should pass if AppImages exist
 ```
 
 ## Qt6 Framework
