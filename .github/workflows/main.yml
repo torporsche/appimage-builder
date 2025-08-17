@@ -1,0 +1,172 @@
+name: Build AppImage - Qt6 x86_64 Only
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-x86_64:
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        # Install all dependencies in one consolidated step
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          git \
+          curl \
+          wget \
+          file \
+          ninja-build \
+          clang \
+          lld \
+          pkg-config \
+          libc6-dev \
+          libssl-dev \
+          libcurl4-openssl-dev \
+          zlib1g-dev \
+          libpng-dev \
+          libuv1-dev \
+          libzip-dev \
+          libglib2.0-dev \
+          qt6-base-dev \
+          qt6-base-dev-tools \
+          qt6-tools-dev \
+          qt6-tools-dev-tools \
+          qmake6 \
+          libqt6svg6-dev \
+          qt6-webengine-dev \
+          qt6-webengine-dev-tools \
+          libqt6webenginecore6 \
+          libqt6webenginewidgets6 \
+          qt6-declarative-dev \
+          qml6-module-qtquick-controls \
+          qml6-module-qtquick-layouts \
+          qml6-module-qtquick-window \
+          qml6-module-qtquick-dialogs \
+          qml6-module-qtwebengine \
+          qt6-wayland \
+          qt6-wayland-dev \
+          libqt6opengl6-dev \
+          libgl1-mesa-dev \
+          libegl1-mesa-dev \
+          libgles2-mesa-dev \
+          libx11-dev \
+          libxext-dev \
+          libxcursor-dev \
+          libxinerama-dev \
+          libxi-dev \
+          libxrandr-dev \
+          libxtst6 \
+          libxss1 \
+          libasound2-dev \
+          libpulse-dev \
+          libudev-dev \
+          libevdev-dev \
+          libnss3-dev \
+          libprotobuf-dev \
+          protobuf-compiler
+
+    - name: Setup environment
+      run: |
+        echo "MAKE_JOBS=$(nproc)" >> $GITHUB_ENV
+        echo "CC=clang" >> $GITHUB_ENV
+        echo "CXX=clang++" >> $GITHUB_ENV
+        echo "QT_VERSION=6" >> $GITHUB_ENV
+        echo "CMAKE_QT_VERSION=Qt6" >> $GITHUB_ENV
+        echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig" >> $GITHUB_ENV
+
+    - name: Test dependencies
+      working-directory: ${{ github.workspace }}
+      run: |
+        ./test-dependencies.sh
+
+    - name: Build AppImage (Qt6 x86_64)
+      working-directory: ${{ github.workspace }}
+      run: |
+        set -e
+        echo "=== Starting AppImage Build ==="
+        echo "Working directory: $(pwd)"
+        echo "Repository contents:"
+        ls -la
+        
+        # Run build script with explicit error handling
+        ./build_appimage.sh -t x86_64 -n -j ${MAKE_JOBS} -q quirks-qt6.sh
+        
+        echo "=== Build completed successfully ==="
+
+    - name: List output directory contents (diagnostics)
+      working-directory: ${{ github.workspace }}
+      if: always()
+      run: |
+        echo "=== Output Directory Diagnostics ==="
+        echo "Working directory: $(pwd)"
+        
+        if [ -d "./output" ]; then
+          echo "✅ Output directory exists"
+          ls -la ./output/
+          echo "Output directory size: $(du -sh ./output/ 2>/dev/null || echo 'N/A')"
+          
+          # Count AppImages
+          appimage_count=$(find ./output -name "*.AppImage" 2>/dev/null | wc -l)
+          echo "AppImage files found: $appimage_count"
+          
+          if [ "$appimage_count" -eq 0 ]; then
+            echo "❌ WARNING: No AppImage files found in output directory"
+            echo "This may cause validation to fail"
+          fi
+        else
+          echo "❌ Output directory ./output does not exist"
+          echo "This indicates the build step failed to complete successfully"
+          echo "Build must create output directory before validation can proceed"
+          exit 1
+        fi
+
+    - name: Validate AppImage Quality
+      working-directory: ${{ github.workspace }}
+      run: |
+        set -e
+        echo "=== Starting AppImage Validation ==="
+        echo "Working directory: $(pwd)"
+        
+        # Validation requires output directory and AppImages to exist
+        ./validate-appimage.sh
+
+    - name: Analyze Build Logs
+      working-directory: ${{ github.workspace }}
+      run: |
+        ./analyze-build-logs.sh
+
+    - name: Upload AppImage artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: appimage-x86_64-qt6
+        path: output/*.AppImage
+        retention-days: 7
+
+    - name: Upload zsync files
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: zsync-x86_64-qt6
+        path: output/*.zsync
+        retention-days: 7
+
+    - name: Upload validation reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: validation-reports
+        path: validation/*.md
+        retention-days: 30
+

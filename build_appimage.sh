@@ -133,6 +133,16 @@ load_quirks "$QUIRKS_FILE"
 
 create_build_directories
 check_system_resources
+
+# Ensure output directory was created successfully
+if [ ! -d "$OUTPUT_DIR" ]; then
+    echo "ERROR: Failed to create output directory: $OUTPUT_DIR"
+    echo "This is required for AppImage build process"
+    echo "Check file system permissions and available disk space"
+    exit 1
+fi
+
+echo "SUCCESS: Output directory created: $OUTPUT_DIR"
 rm -rf ${APP_DIR}
 mkdir -p ${APP_DIR}
 
@@ -383,15 +393,34 @@ check_run mv Minecraft*.AppImage "$OUTPUT_DIR"/
 
 # Verify that AppImages were successfully created and moved
 if [ -z "$(find "$OUTPUT_DIR" -name "*.AppImage" 2>/dev/null)" ]; then
-    echo "ERROR: No AppImage files found in output directory after build"
-    echo "Build appears to have completed, but no AppImage was produced"
-    echo "Check build logs for errors in AppImage creation process"
+    echo "========================="
+    echo "ERROR: AppImage Creation Failed"
+    echo "========================="
+    echo "❌ No AppImage files found in output directory: $OUTPUT_DIR"
+    echo ""
+    echo "Possible causes:"
+    echo "1. AppImage build process failed during appimagetool execution"
+    echo "2. AppImage was created but failed to move to output directory"
+    echo "3. Insufficient disk space or permissions"
+    echo ""
     echo "Output directory contents:"
-    ls -la "$OUTPUT_DIR" || echo "Output directory is empty or doesn't exist"
+    if [ -d "$OUTPUT_DIR" ]; then
+        ls -la "$OUTPUT_DIR" || echo "Output directory is empty"
+    else
+        echo "Output directory does not exist (this should not happen)"
+    fi
+    echo ""
+    echo "Current working directory contents (looking for AppImages):"
+    ls -la *.AppImage 2>/dev/null || echo "No AppImage files in current directory either"
+    echo ""
+    echo "Build process must create at least one AppImage for CI validation to proceed"
     exit 1
 fi
 
-echo "SUCCESS: AppImage(s) created and moved to output directory:"
+echo "========================="
+echo "SUCCESS: AppImage Build Complete"
+echo "========================="
+echo "✅ AppImage(s) created and moved to output directory:"
 ls -la "$OUTPUT_DIR"/*.AppImage
 if [ "${TAGNAME}" = "-" ]
 then

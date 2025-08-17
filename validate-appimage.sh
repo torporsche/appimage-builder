@@ -1001,6 +1001,69 @@ main() {
     echo "=================================================="
     echo ""
     
+    # Early failure detection - check critical prerequisites
+    show_status "Performing early failure detection checks"
+    
+    # Check if output directory exists
+    if [ ! -d "$OUTPUT_DIR" ]; then
+        echo ""
+        show_error "❌ VALIDATION FAILED - Output directory missing"
+        show_error "Expected directory: $OUTPUT_DIR"
+        show_error "Working directory: $(pwd)"
+        echo ""
+        show_error "This indicates that build_appimage.sh did not run successfully or at all"
+        show_error ""
+        show_error "Required workflow order:"
+        show_error "1. build_appimage.sh must run first and create output directory"
+        show_error "2. validate-appimage.sh can only run after successful build"
+        echo ""
+        show_error "Immediate actions required:"
+        show_error "→ Ensure build_appimage.sh completed successfully"
+        show_error "→ Check CI workflow job ordering and dependencies"
+        show_error "→ Verify working directory is repository root"
+        echo ""
+        exit 1
+    fi
+    
+    # Check if output directory is empty
+    if [ -z "$(ls -A "$OUTPUT_DIR" 2>/dev/null)" ]; then
+        echo ""
+        show_error "❌ VALIDATION FAILED - Output directory is empty"
+        show_error "Output directory: $OUTPUT_DIR exists but contains no files"
+        echo ""
+        show_error "This indicates that build_appimage.sh created the directory but failed during build"
+        show_error ""
+        show_error "Immediate actions required:"
+        show_error "→ Check build_appimage.sh logs for build failures"
+        show_error "→ Verify all build dependencies are installed"
+        show_error "→ Ensure sufficient disk space and memory"
+        echo ""
+        exit 1
+    fi
+    
+    # Check for AppImage files specifically
+    local appimage_count=$(find "$OUTPUT_DIR" -name "*.AppImage" 2>/dev/null | wc -l)
+    if [ "$appimage_count" -eq 0 ]; then
+        echo ""
+        show_error "❌ VALIDATION FAILED - No AppImage files found"
+        show_error "Output directory: $OUTPUT_DIR exists but contains no *.AppImage files"
+        echo ""
+        show_error "Output directory contents:"
+        ls -la "$OUTPUT_DIR" 2>/dev/null || echo "Failed to list directory contents"
+        echo ""
+        show_error "This indicates AppImage creation failed during build process"
+        show_error ""
+        show_error "Immediate actions required:"
+        show_error "→ Check appimagetool execution in build logs"
+        show_error "→ Verify AppDir was populated correctly"
+        show_error "→ Check for linuxdeploy/appimagetool errors"
+        echo ""
+        exit 1
+    fi
+    
+    show_success "✅ Early checks passed - Found $appimage_count AppImage file(s) in output directory"
+    echo ""
+    
     init_validation
     
     validate_build_success
