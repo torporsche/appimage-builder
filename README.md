@@ -12,25 +12,133 @@ This repository builds AppImages for the mcpelauncher-linux project using a simp
 - clang compiler
 - Standard build tools
 
-### Local Build
+### Local Build with Enhanced Validation
 ```bash
-# Test your environment
+# 1. Test your environment with strict dependency validation
 ./test-dependencies.sh
 
-# Build Qt6 AppImage (x86_64 only, MSA disabled, no 32-bit) - RECOMMENDED
+# 2. Build Qt6 AppImage (x86_64 only, MSA disabled, no 32-bit) - RECOMMENDED
 ./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
 
-# Build Qt5 AppImage (legacy compatibility)
-./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-modern.sh
+# 3. Validate the built AppImage with comprehensive checks
+./validate-appimage.sh
 
-# Validate the built AppImage
+# 4. Run complete validation suite including functionality tests
 ./run-comprehensive-validation.sh
 
-# Check AppImage compatibility (NEW)
+# 5. Check AppImage compatibility across distributions (NEW)
 ./ensure-appimage-compatibility.sh output/mcpelauncher-ui-qt.AppImage
 
-# Test OpenGL ES 3.0 support (NEW)
+# 6. Test OpenGL ES 3.0 support (NEW)
 ./build_gles30_validator.sh all
+```
+
+### Build Troubleshooting Workflow
+
+#### Quick Dependency Check
+```bash
+# Check if your system is ready for Qt6 builds
+./test-dependencies.sh
+
+# Expected output: All "✅" checks, no "❌" errors
+# If you see "❌" errors, follow the installation suggestions
+```
+
+#### Common Build Issues and Solutions
+
+**1. Qt6 Not Found Error**
+```bash
+❌ Qt6 qmake: NOT FOUND
+❌ Qt6 CMake AppImage configuration: FAILED
+```
+**Solution:**
+```bash
+# Install Qt6 development packages
+./install-qt6-deps.sh
+
+# Or manually:
+sudo apt-get install qt6-base-dev qt6-tools-dev qt6-webengine-dev
+```
+
+**2. Missing Build Tools**
+```bash
+❌ cmake: NOT FOUND
+❌ ninja: NOT FOUND
+```
+**Solution:**
+```bash
+sudo apt-get install build-essential cmake ninja-build git pkg-config
+```
+
+**3. Qt6 Wayland Components Missing**
+```bash
+❌ Qt6 Wayland component: /usr/lib/x86_64-linux-gnu/libQt6WaylandClient.so (missing)
+```
+**Solution:**
+```bash
+sudo apt-get install qt6-wayland qt6-wayland-dev
+```
+
+**4. OpenGL/Graphics Issues**
+```bash
+⚠️ Hardware OpenGL not available or incomplete - enabling software fallback
+```
+**Solution:**
+```bash
+sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev mesa-utils
+```
+
+#### Validation Workflow
+
+**Pre-Build Validation:**
+```bash
+# Ensure environment is ready with integration validation
+./integration-validation.sh pre
+
+# Ensure environment dependencies are met
+./test-dependencies.sh
+echo $? # Should be 0 for success
+```
+
+**Post-Build Validation:**
+```bash
+# Validate AppImage structure and functionality
+./validate-appimage.sh
+
+# Run integration validation for reproducibility
+./integration-validation.sh post
+
+# Check cross-distribution compatibility
+./ensure-appimage-compatibility.sh output/*.AppImage
+
+# Run comprehensive test suite
+./run-comprehensive-validation.sh
+```
+
+**Complete Validation Workflow:**
+```bash
+# Complete pre/post build validation
+./integration-validation.sh both
+
+# This runs both pre-build and post-build validation
+# ensuring reproducible, deterministic builds
+```
+
+**CI/CD Integration:**
+```bash
+# For automated builds, use fail-fast validation
+set -e
+
+# Pre-build validation
+./integration-validation.sh pre
+./test-dependencies.sh
+
+# Build process
+./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+
+# Post-build validation
+./validate-appimage.sh
+./integration-validation.sh post
 ```
 
 ## Qt6 Migration
@@ -150,6 +258,7 @@ sudo apt-get install -y \
 ## Quality Assurance
 
 ### Validation Scripts
+- `integration-validation.sh` - **NEW** Pre/post-build validation ensuring reproducibility and deterministic output
 - `validate-appimage.sh` - Primary AppImage quality validation
 - `ensure-appimage-compatibility.sh` - **NEW** AppImage compatibility checker with system validation
 - `build_gles30_validator.sh` - **NEW** OpenGL ES 3.0 detection and validation tool
