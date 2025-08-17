@@ -380,6 +380,19 @@ check_run "$APPIMAGETOOL_BIN" --comp xz --runtime-file "tools/$APPIMAGE_RUNTIME_
 
 # Move AppImage and zsync files to output directory (created by create_build_directories)
 check_run mv Minecraft*.AppImage "$OUTPUT_DIR"/
+
+# Verify that AppImages were successfully created and moved
+if [ -z "$(find "$OUTPUT_DIR" -name "*.AppImage" 2>/dev/null)" ]; then
+    echo "ERROR: No AppImage files found in output directory after build"
+    echo "Build appears to have completed, but no AppImage was produced"
+    echo "Check build logs for errors in AppImage creation process"
+    echo "Output directory contents:"
+    ls -la "$OUTPUT_DIR" || echo "Output directory is empty or doesn't exist"
+    exit 1
+fi
+
+echo "SUCCESS: AppImage(s) created and moved to output directory:"
+ls -la "$OUTPUT_DIR"/*.AppImage
 if [ "${TAGNAME}" = "-" ]
 then
     cat *.zsync > "$OUTPUT_DIR/version${OUTPUT_SUFFIX}.${ARCH}.zsync"
