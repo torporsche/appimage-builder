@@ -179,27 +179,144 @@ See [VALIDATION.md](VALIDATION.md) for complete documentation.
 
 ## Troubleshooting
 
-### Qt6 Plugin Issues
+### Qt6 Plugin Issues and Structure
 
-**Problem**: AppImage fails to start with Qt6 plugin errors
-```bash
-# Verify Qt6 plugins are properly packaged
-./tests/test-qt6-plugin-validation.sh
+#### Required Qt6 Plugin Structure
 
-# Check for missing Wayland plugins (common on immutable OS)
-./validate-appimage.sh | grep -i wayland
+The AppImage requires a complete Qt6 plugin directory structure in `usr/plugins/` that matches the official Minecraft Bedrock Launcher AppImage:
 
-# Install missing Qt6 dependencies
-sudo apt-get install qt6-base-dev qt6-tools-dev qt6-wayland qt6-wayland-dev
+**Critical Plugins (Build Failure if Missing):**
+```
+usr/plugins/
+├── platforms/          # Essential for Qt application startup
+├── imageformats/       # Required for image loading (PNG, JPG, etc.)
+├── iconengines/        # Required for icon rendering
+├── wayland-decoration-client/       # Critical for Wayland compatibility
+├── wayland-graphics-integration-client/  # Critical for Wayland graphics
+└── wayland-shell-integration/       # Critical for Wayland window management
 ```
 
-**Problem**: Missing WebEngine functionality
+**Optional Plugins (Recommended):**
+```
+usr/plugins/
+├── xcbglintegrations/  # X11 OpenGL support
+├── webengine/          # Web functionality support
+├── tls/               # Secure network connections
+└── networkinformation/ # Network status detection
+```
+
+#### Plugin Validation and Diagnostics
+
+**Verify Plugin Structure:**
 ```bash
+# Run comprehensive plugin validation
+./tests/test-qt6-plugin-validation.sh
+
+# Validate built AppImage
+./validate-appimage.sh
+
+# Check specific plugin presence
+./validate-appimage.sh | grep -E "(platforms|wayland|webengine)"
+```
+
+**Check Plugin Directory Contents:**
+```bash
+# Extract and examine AppImage plugin structure
+./output/mcpelauncher-ui-qt.AppImage --appimage-extract
+find squashfs-root/usr/plugins/ -name "*.so" | sort
+
+# Compare with system Qt6 plugins
+find /usr/lib/x86_64-linux-gnu/qt6/plugins/ -name "*.so" | wc -l
+```
+
+#### Common Plugin Issues and Solutions
+
+**Problem**: AppImage fails to start with Qt6 plugin errors or "No platform plugin" errors
+```bash
+# Symptoms: 
+# - "qt.qpa.plugin: Could not find the Qt platform plugin"
+# - "This application failed to start because no Qt platform plugin could be initialized"
+
+# Diagnosis:
+./validate-appimage.sh | grep -A 10 -B 5 "Qt Plugins"
+
+# Solution 1: Install missing Qt6 packages
+sudo apt-get update
+sudo apt-get install qt6-base-dev qt6-tools-dev qt6-wayland qt6-wayland-dev
+
+# Solution 2: Rebuild with comprehensive plugin copying
+export STRICT_PLUGIN_VALIDATION=true
+./build_appimage.sh -j $(nproc)
+
+# Solution 3: Verify quirk_copy_qt6_plugins function executed
+./build_appimage.sh -j $(nproc) 2>&1 | grep -i "copying qt6 plugins"
+```
+
+**Problem**: AppImage crashes on Wayland systems (Bazzite, Silverblue, immutable OS)
+```bash
+# Symptoms:
+# - Works on X11 but crashes on Wayland
+# - "Could not connect to Wayland display"
+# - Segmentation fault on startup
+
+# Diagnosis:
+./validate-appimage.sh | grep -i wayland
+
+# Solution: Ensure all Wayland plugins are present
+sudo apt-get install qt6-wayland qt6-wayland-dev
+./build_appimage.sh -j $(nproc)
+
+# Verify Wayland plugin presence:
+./output/mcpelauncher-ui-qt.AppImage --appimage-extract
+ls -la squashfs-root/usr/plugins/wayland-*/
+```
+
+**Problem**: Missing WebEngine functionality (web views don't work)
+```bash
+# Symptoms:
+# - Login screen doesn't load
+# - Web-based features non-functional
+# - "QWebEngineView" related errors
+
 # Install WebEngine dependencies
 sudo apt-get install qt6-webengine-dev qt6-webengine-data
 
 # Rebuild with WebEngine support
-./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+./build_appimage.sh -j $(nproc)
+
+# Verify WebEngine plugins
+./output/mcpelauncher-ui-qt.AppImage --appimage-extract
+ls -la squashfs-root/usr/plugins/webengine/
+```
+
+#### Advanced Plugin Troubleshooting
+
+**Enable Strict Plugin Validation:**
+```bash
+# Force build to fail if critical plugins are missing
+export STRICT_PLUGIN_VALIDATION=true
+./build_appimage.sh -j $(nproc)
+```
+
+**Manual Plugin Verification:**
+```bash
+# Check if plugins are loadable
+ldd squashfs-root/usr/plugins/platforms/libqxcb.so
+
+# Verify plugin permissions
+find squashfs-root/usr/plugins/ -name "*.so" ! -perm 755
+
+# Test plugin compatibility
+file squashfs-root/usr/plugins/platforms/*.so
+```
+
+**Debug Plugin Loading:**
+```bash
+# Run AppImage with Qt debug output
+QT_LOGGING_RULES="qt.qpa.*=true" ./output/mcpelauncher-ui-qt.AppImage
+
+# Check for missing dependencies
+QT_DEBUG_PLUGINS=1 ./output/mcpelauncher-ui-qt.AppImage
 ```
 
 ### RPATH and Library Issues

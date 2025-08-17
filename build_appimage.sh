@@ -260,6 +260,9 @@ call_quirk build_mcpelauncher_ui
 build_component64 mcpelauncher-ui
 install_component mcpelauncher-ui
 
+# Copy Qt6 plugins to AppImage after UI installation
+call_quirk copy_qt6_plugins
+
 # Early exit for dry-run configuration mode
 if [ -n "${DRY_RUN_CONFIGURE:-}" ]; then
   show_status "DRY_RUN_CONFIGURE: CMake configuration completed for all components, skipping packaging"
@@ -311,25 +314,10 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH+"${LD_LIBRARY_PATH}:"}"$APP_DIR/usr/lib
 check_run "$LINUXDEPLOY_BIN" --appdir "$APP_DIR" -i "$BUILD_DIR/mcpelauncher-ui-qt.svg" -d "$BUILD_DIR/mcpelauncher-ui-qt.desktop"
 
 export QML_SOURCES_PATHS="$SOURCE_DIR/mcpelauncher-ui/mcpelauncher-ui-qt/qml/:$SOURCE_DIR/mcpelauncher/mcpelauncher-webview"
-# Bundle Qt6 Wayland plugins for native Wayland support - check for Qt6 build indicators
-show_status "Bundling Qt6 Wayland platform plugins for native Wayland support"
+# Qt6 plugins are now comprehensively copied by quirk_copy_qt6_plugins function
+show_status "Qt6 plugins already copied by quirks system - proceeding with linuxdeploy"
 export EXTRA_PLATFORM_PLUGINS="libqwayland-egl.so;libqwayland-generic.so"
 export EXTRA_QT_PLUGINS="wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration"
-check_run mkdir -p "$APP_DIR/usr/plugins/"
-    
-    # Validate Wayland plugin paths before copying
-    wayland_plugins_base="/usr/lib/$DEBIANTARGET/qt6/plugins"
-    if [ -d "$wayland_plugins_base/wayland-decoration-client" ] && \
-       [ -d "$wayland_plugins_base/wayland-graphics-integration-client" ] && \
-       [ -d "$wayland_plugins_base/wayland-shell-integration" ]; then
-        check_run cp -R "$wayland_plugins_base/wayland-decoration-client" \
-                       "$wayland_plugins_base/wayland-graphics-integration-client" \
-                       "$wayland_plugins_base/wayland-shell-integration" \
-                       "$APP_DIR/usr/plugins/"
-        show_status "Qt6 Wayland plugins bundled successfully"
-    else
-        show_status "Qt6 Wayland plugin directories not found - native Wayland support may be limited"
-    fi
 check_run "$LINUXDEPLOY_PLUGIN_QT_BIN" --appdir "$APP_DIR"
 
 # libnss needs to be included for google login support

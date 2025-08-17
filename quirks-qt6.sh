@@ -420,3 +420,115 @@ quirk_build_start() {
   
   show_status "Qt6 UI build environment ready for x86_64 (WebEngine and Wayland support)"
 }
+
+# Function to copy all required Qt6 plugins to AppImage - matches official AppImage structure
+quirk_copy_qt6_plugins() {
+  show_status "Copying Qt6 plugins to AppImage (matching official structure)"
+  
+  local qt6_plugins_base="/usr/lib/x86_64-linux-gnu/qt6/plugins"
+  local app_plugins_dir="$APP_DIR/usr/plugins"
+  local strict_validation="${STRICT_PLUGIN_VALIDATION:-true}"
+  local copied_plugins=0
+  local failed_copies=0
+  
+  # Ensure plugins directory exists
+  mkdir -p "$app_plugins_dir"
+  
+  # Define all required Qt6 plugin directories and their criticality
+  # Format: "directory_name:critical_level" where critical_level is "critical" or "optional"
+  local required_plugin_dirs=(
+    "platforms:critical"
+    "imageformats:critical"
+    "iconengines:critical"
+    "wayland-decoration-client:critical"
+    "wayland-graphics-integration-client:critical"
+    "wayland-shell-integration:critical"
+    "xcbglintegrations:optional"
+    "webengine:optional"
+    "tls:optional"
+    "networkinformation:optional"
+  )
+  
+  show_status "Copying Qt6 plugins from $qt6_plugins_base to $app_plugins_dir"
+  
+  for plugin_entry in "${required_plugin_dirs[@]}"; do
+    local plugin_dir="${plugin_entry%:*}"
+    local criticality="${plugin_entry#*:}"
+    local source_dir="$qt6_plugins_base/$plugin_dir"
+    local dest_dir="$app_plugins_dir/$plugin_dir"
+    
+    if [ -d "$source_dir" ]; then
+      local plugin_count=$(find "$source_dir" -name "*.so" 2>/dev/null | wc -l)
+      
+      if [ "$plugin_count" -gt 0 ]; then
+        # Copy the entire plugin directory
+        if cp -R "$source_dir" "$app_plugins_dir/" 2>/dev/null; then
+          show_status "✓ Copied $plugin_dir: $plugin_count plugins"
+          copied_plugins=$((copied_plugins + 1))
+          
+          # Verify copy was successful
+          local copied_count=$(find "$dest_dir" -name "*.so" 2>/dev/null | wc -l)
+          if [ "$copied_count" -ne "$plugin_count" ]; then
+            show_status "WARNING: Plugin count mismatch for $plugin_dir (expected: $plugin_count, copied: $copied_count)"
+          fi
+        else
+          show_status "ERROR: Failed to copy $plugin_dir plugin directory"
+          failed_copies=$((failed_copies + 1))
+          if [ "$criticality" = "critical" ] && [ "$strict_validation" = "true" ]; then
+            echo "ERROR: Failed to copy critical Qt6 plugin directory: $plugin_dir" >&2
+            exit 1
+          fi
+        fi
+      else
+        show_status "WARNING: $plugin_dir directory is empty"
+        if [ "$criticality" = "critical" ] && [ "$strict_validation" = "true" ]; then
+          echo "ERROR: Critical Qt6 plugin directory is empty: $plugin_dir" >&2
+          echo "Install with: sudo apt-get install qt6-base-dev qt6-wayland qt6-webengine-dev" >&2
+          exit 1
+        fi
+      fi
+    else
+      show_status "WARNING: $plugin_dir directory not found at $source_dir"
+      if [ "$criticality" = "critical" ] && [ "$strict_validation" = "true" ]; then
+        echo "ERROR: Critical Qt6 plugin directory missing: $source_dir" >&2
+        echo "Install with: sudo apt-get install qt6-base-dev qt6-wayland qt6-webengine-dev" >&2
+        exit 1
+      fi
+    fi
+  done
+  
+  # Set proper permissions on all copied plugins
+  if [ -d "$app_plugins_dir" ]; then
+    find "$app_plugins_dir" -name "*.so" -exec chmod 755 {} \; 2>/dev/null || true
+    find "$app_plugins_dir" -type d -exec chmod 755 {} \; 2>/dev/null || true
+  fi
+  
+  # Summary report
+  show_status "Qt6 plugin copying complete: $copied_plugins directories copied successfully"
+  if [ "$failed_copies" -gt 0 ]; then
+    show_status "WARNING: $failed_copies plugin directories failed to copy"
+  fi
+  
+  # Validate the final plugin structure
+  if [ -d "$app_plugins_dir" ]; then
+    local total_plugins=$(find "$app_plugins_dir" -name "*.so" 2>/dev/null | wc -l)
+    show_status "Total Qt6 plugins in AppImage: $total_plugins"
+    
+    # Log plugin directory structure for debugging
+    show_status "Qt6 plugin directory structure:"
+    find "$app_plugins_dir" -type d | sort | while read -r dir; do
+      local plugin_count=$(find "$dir" -maxdepth 1 -name "*.so" 2>/dev/null | wc -l)
+      local rel_path="${dir#$app_plugins_dir/}"
+      if [ "$plugin_count" -gt 0 ]; then
+        show_status "  $rel_path/ ($plugin_count plugins)"
+      else
+        show_status "  $rel_path/ (directory only)"
+      fi
+    done
+  else
+    echo "ERROR: Qt6 plugins directory was not created successfully" >&2
+    if [ "$strict_validation" = "true" ]; then
+      exit 1
+    fi
+  fi
+}
