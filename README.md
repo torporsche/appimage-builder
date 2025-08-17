@@ -92,7 +92,10 @@ sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev mesa-utils
 
 **Pre-Build Validation:**
 ```bash
-# Ensure environment is ready
+# Ensure environment is ready with integration validation
+./integration-validation.sh pre
+
+# Ensure environment dependencies are met
 ./test-dependencies.sh
 echo $? # Should be 0 for success
 ```
@@ -102,6 +105,9 @@ echo $? # Should be 0 for success
 # Validate AppImage structure and functionality
 ./validate-appimage.sh
 
+# Run integration validation for reproducibility
+./integration-validation.sh post
+
 # Check cross-distribution compatibility
 ./ensure-appimage-compatibility.sh output/*.AppImage
 
@@ -109,13 +115,30 @@ echo $? # Should be 0 for success
 ./run-comprehensive-validation.sh
 ```
 
+**Complete Validation Workflow:**
+```bash
+# Complete pre/post build validation
+./integration-validation.sh both
+
+# This runs both pre-build and post-build validation
+# ensuring reproducible, deterministic builds
+```
+
 **CI/CD Integration:**
 ```bash
 # For automated builds, use fail-fast validation
 set -e
+
+# Pre-build validation
+./integration-validation.sh pre
 ./test-dependencies.sh
+
+# Build process
 ./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+
+# Post-build validation
 ./validate-appimage.sh
+./integration-validation.sh post
 ```
 
 ## Qt6 Migration
@@ -235,6 +258,7 @@ sudo apt-get install -y \
 ## Quality Assurance
 
 ### Validation Scripts
+- `integration-validation.sh` - **NEW** Pre/post-build validation ensuring reproducibility and deterministic output
 - `validate-appimage.sh` - Primary AppImage quality validation
 - `ensure-appimage-compatibility.sh` - **NEW** AppImage compatibility checker with system validation
 - `build_gles30_validator.sh` - **NEW** OpenGL ES 3.0 detection and validation tool
