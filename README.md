@@ -176,6 +176,105 @@ This repository includes a comprehensive **AppImage Validation Framework** that 
 
 See [VALIDATION.md](VALIDATION.md) for complete documentation.
 
+## Troubleshooting
+
+### Qt6 Plugin Issues
+
+**Problem**: AppImage fails to start with Qt6 plugin errors
+```bash
+# Verify Qt6 plugins are properly packaged
+./tests/test-qt6-plugin-validation.sh
+
+# Check for missing Wayland plugins (common on immutable OS)
+./validate-appimage.sh | grep -i wayland
+
+# Install missing Qt6 dependencies
+sudo apt-get install qt6-base-dev qt6-tools-dev qt6-wayland qt6-wayland-dev
+```
+
+**Problem**: Missing WebEngine functionality
+```bash
+# Install WebEngine dependencies
+sudo apt-get install qt6-webengine-dev qt6-webengine-data
+
+# Rebuild with WebEngine support
+./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+```
+
+### RPATH and Library Issues
+
+**Problem**: AppImage fails to find bundled libraries
+```bash
+# Check RPATH configuration
+readelf -d output/mcpelauncher-ui-qt.AppImage | grep -E "(RPATH|RUNPATH)"
+
+# Validate library bundling
+./validate-appimage.sh | grep -i "bundled libraries"
+
+# Fix with proper RPATH (automatic in multilib.cmake)
+```
+
+### Permission Issues
+
+**Problem**: Executables lack proper permissions
+```bash
+# Check AppImage permissions
+./validate-appimage.sh | grep -i permissions
+
+# Fix permissions manually (last resort)
+chmod +x output/*.AppImage
+```
+
+### Official AppImage Reference (v1.1.1-802)
+
+This build system aims to match the structure and functionality of the official Minecraft Bedrock Launcher AppImage v1.1.1-802:
+
+- **Plugin Structure**: Complete Qt6 plugin directory hierarchy
+- **Wayland Support**: Native Wayland protocol plugins for immutable OS compatibility  
+- **WebEngine Integration**: Full Qt6 WebEngine plugin support
+- **RPATH Configuration**: Portable library loading with `$ORIGIN` relative paths
+- **Permission Model**: All binaries and libraries with correct executable/readable permissions
+
+**Reference Analysis**:
+```bash
+# Analyze official AppImage structure (if available)
+./analyze_official_appimage.sh /path/to/official-launcher-v1.1.1-802.AppImage
+
+# Compare with built AppImage
+./compare_builds.sh output/mcpelauncher-ui-qt.AppImage /path/to/official.AppImage
+```
+
+### Environment-Specific Issues
+
+**Ubuntu 22.04 LTS**:
+```bash
+# Install required dependencies
+sudo apt-get update
+sudo apt-get install qt6-base-dev qt6-tools-dev qt6-wayland qt6-wayland-dev
+
+# Build with environment validation
+./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+```
+
+**Fedora/Immutable OS (Bazzite)**:
+```bash
+# Enable Wayland support (critical for immutable OS)
+export STRICT_PLUGIN_VALIDATION=true
+./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+
+# Validate Wayland compatibility
+./tests/test-qt6-plugin-validation.sh
+```
+
+**Cross-Distribution Testing**:
+```bash
+# Test AppImage compatibility across distributions
+./ensure-appimage-compatibility.sh output/mcpelauncher-ui-qt.AppImage
+
+# Run comprehensive validation
+./run-comprehensive-validation.sh
+```
+
 ### Demo Workflow
 ```bash
 # See the complete build and validation workflow in action

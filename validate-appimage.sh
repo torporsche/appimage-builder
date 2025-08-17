@@ -313,14 +313,16 @@ validate_appimage_structure() {
         log_to_report "- ⚠️ **Bundled Libraries**: None found"
     fi
     
-    # Check Qt plugins with comprehensive validation
+    # Check Qt plugins with comprehensive validation and stricter requirements
     if [ -d "$extract_dir/usr/plugins" ]; then
         local plugin_count=$(find "$extract_dir/usr/plugins" -name "*.so" 2>/dev/null | wc -l)
         show_success "    Qt plugins directory with $plugin_count plugins"
         log_to_report "- ✅ **Qt Plugins**: $plugin_count plugins found"
         
-        # Check for essential Qt platform plugins
+        # Check for essential Qt platform plugins (stricter validation)
         local essential_plugins=("platforms" "imageformats" "iconengines")
+        local missing_essential=0
+        
         for plugin_type in "${essential_plugins[@]}"; do
             if [ -d "$extract_dir/usr/plugins/$plugin_type" ]; then
                 local type_count=$(find "$extract_dir/usr/plugins/$plugin_type" -name "*.so" 2>/dev/null | wc -l)
@@ -328,27 +330,69 @@ validate_appimage_structure() {
                     show_success "      $plugin_type plugins: $type_count"
                     log_to_report "  - ✅ $plugin_type: $type_count plugins"
                 else
-                    show_warning "      $plugin_type directory empty"
-                    log_to_report "  - ⚠️ $plugin_type: Directory empty"
+                    show_error "      $plugin_type directory empty (CRITICAL)"
+                    log_to_report "  - ❌ $plugin_type: Directory empty (CRITICAL)"
+                    missing_essential=$((missing_essential + 1))
                 fi
             else
-                show_warning "      $plugin_type directory missing"
-                log_to_report "  - ⚠️ $plugin_type: Directory missing"
+                show_error "      $plugin_type directory missing (CRITICAL)"
+                log_to_report "  - ❌ $plugin_type: Directory missing (CRITICAL)"
+                missing_essential=$((missing_essential + 1))
             fi
         done
         
-        # Check for Wayland plugins specifically
-        if [ -d "$extract_dir/usr/plugins/wayland-decoration-client" ] || \
-           [ -d "$extract_dir/usr/plugins/wayland-graphics-integration-client" ]; then
-            show_success "    Wayland plugins detected"
-            log_to_report "- ✅ **Wayland Support**: Wayland plugins found"
+        # Check for Wayland plugins specifically (required for Qt6 builds)
+        local wayland_plugins_found=0
+        local wayland_plugin_dirs=("wayland-decoration-client" "wayland-graphics-integration-client" "wayland-shell-integration")
+        
+        for wayland_plugin in "${wayland_plugin_dirs[@]}"; do
+            if [ -d "$extract_dir/usr/plugins/$wayland_plugin" ]; then
+                local wayland_count=$(find "$extract_dir/usr/plugins/$wayland_plugin" -name "*.so" 2>/dev/null | wc -l)
+                if [ $wayland_count -gt 0 ]; then
+                    show_success "      $wayland_plugin plugins: $wayland_count"
+                    log_to_report "  - ✅ $wayland_plugin: $wayland_count plugins"
+                    wayland_plugins_found=$((wayland_plugins_found + 1))
+                else
+                    show_warning "      $wayland_plugin directory empty"
+                    log_to_report "  - ⚠️ $wayland_plugin: Directory empty"
+                fi
+            else
+                show_warning "      $wayland_plugin directory missing"
+                log_to_report "  - ⚠️ $wayland_plugin: Directory missing"
+            fi
+        done
+        
+        if [ $wayland_plugins_found -gt 0 ]; then
+            show_success "    Wayland plugins detected ($wayland_plugins_found types)"
+            log_to_report "- ✅ **Wayland Support**: $wayland_plugins_found Wayland plugin types found"
         else
-            show_warning "    No Wayland plugins found"
+            show_warning "    No Wayland plugins found (may affect immutable OS compatibility)"
             log_to_report "- ⚠️ **Wayland Support**: No Wayland plugins found"
         fi
+        
+        # Check for WebEngine plugins (optional but recommended)
+        if [ -d "$extract_dir/usr/plugins/webengine" ]; then
+            local webengine_count=$(find "$extract_dir/usr/plugins/webengine" -name "*.so" 2>/dev/null | wc -l)
+            if [ $webengine_count -gt 0 ]; then
+                show_success "    WebEngine plugins detected: $webengine_count"
+                log_to_report "- ✅ **WebEngine Support**: $webengine_count WebEngine plugins found"
+            else
+                show_warning "    WebEngine directory empty"
+                log_to_report "- ⚠️ **WebEngine Support**: Directory empty"
+            fi
+        else
+            show_warning "    No WebEngine plugins found (optional)"
+            log_to_report "- ⚠️ **WebEngine Support**: No WebEngine plugins found (optional)"
+        fi
+        
+        # Fail validation if critical plugins are missing
+        if [ $missing_essential -gt 0 ]; then
+            show_error "    CRITICAL: $missing_essential essential plugin directories missing or empty"
+            log_to_report "- ❌ **CRITICAL FAILURE**: $missing_essential essential plugin directories missing"
+        fi
     else
-        show_warning "    Qt plugins directory not found"
-        log_to_report "- ⚠️ **Qt Plugins**: Directory not found"
+        show_error "    Qt plugins directory not found (CRITICAL)"
+        log_to_report "- ❌ **Qt Plugins**: Directory not found (CRITICAL)"
     fi
     
     # Validate RPATH settings for bundled libraries
@@ -363,14 +407,53 @@ validate_appimage_structure() {
         fi
     fi
     
-    # Check file permissions
+    # Check file permissions with comprehensive validation
     local executable_count=$(find "$extract_dir/usr/bin" -type f -executable 2>/dev/null | wc -l)
+    local total_binaries=$(find "$extract_dir/usr/bin" -type f 2>/dev/null | wc -l)
+    
     if [ $executable_count -gt 0 ]; then
-        show_success "    Executable files have correct permissions: $executable_count"
-        log_to_report "- ✅ **Permissions**: $executable_count executables with correct permissions"
+        if [ $executable_count -eq $total_binaries ]; then
+            show_success "    All executable files have correct permissions: $executable_count/$total_binaries"
+            log_to_report "- ✅ **Permissions**: All $total_binaries executables have correct permissions"
+        else
+            show_warning "    Some executables missing permissions: $executable_count/$total_binaries"
+            log_to_report "- ⚠️ **Permissions**: $executable_count/$total_binaries executables have correct permissions"
+            
+            # List files with incorrect permissions
+            local non_executable_files=$(find "$extract_dir/usr/bin" -type f ! -executable 2>/dev/null)
+            if [ -n "$non_executable_files" ]; then
+                show_warning "    Files with incorrect permissions:"
+                log_to_report "  - Files missing execute permissions:"
+                while IFS= read -r file; do
+                    local filename=$(basename "$file")
+                    show_warning "      $filename"
+                    log_to_report "    - $filename"
+                done <<< "$non_executable_files"
+            fi
+        fi
     else
-        show_warning "    No executable files found or incorrect permissions"
-        log_to_report "- ⚠️ **Permissions**: No executables found with correct permissions"
+        if [ $total_binaries -gt 0 ]; then
+            show_error "    No executable permissions on $total_binaries binary files (CRITICAL)"
+            log_to_report "- ❌ **Permissions**: No executables found with correct permissions ($total_binaries files need fixing)"
+        else
+            show_warning "    No binary files found in usr/bin"
+            log_to_report "- ⚠️ **Permissions**: No binary files found in usr/bin"
+        fi
+    fi
+    
+    # Check library permissions
+    local lib_dir="$extract_dir/usr/lib"
+    if [ -d "$lib_dir" ]; then
+        local total_libs=$(find "$lib_dir" -name "*.so*" -type f 2>/dev/null | wc -l)
+        local readable_libs=$(find "$lib_dir" -name "*.so*" -type f -readable 2>/dev/null | wc -l)
+        
+        if [ $total_libs -eq $readable_libs ] && [ $total_libs -gt 0 ]; then
+            show_success "    All library files have correct permissions: $total_libs"
+            log_to_report "- ✅ **Library Permissions**: All $total_libs libraries are readable"
+        elif [ $total_libs -gt 0 ]; then
+            show_warning "    Some libraries have permission issues: $readable_libs/$total_libs"
+            log_to_report "- ⚠️ **Library Permissions**: $readable_libs/$total_libs libraries have correct permissions"
+        fi
     fi
 }
 
