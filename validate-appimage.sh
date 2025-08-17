@@ -319,10 +319,13 @@ validate_appimage_structure() {
         show_success "    Qt plugins directory with $plugin_count plugins"
         log_to_report "- ✅ **Qt Plugins**: $plugin_count plugins found"
         
-        # Check for essential Qt platform plugins (stricter validation)
+        # Check for essential Qt platform plugins (stricter validation for Qt6)
         local essential_plugins=("platforms" "imageformats" "iconengines")
+        local qt6_critical_plugins=("wayland-decoration-client" "wayland-graphics-integration-client" "wayland-shell-integration")
         local missing_essential=0
+        local missing_qt6_critical=0
         
+        # Validate essential plugins (all Qt versions)
         for plugin_type in "${essential_plugins[@]}"; do
             if [ -d "$extract_dir/usr/plugins/$plugin_type" ]; then
                 local type_count=$(find "$extract_dir/usr/plugins/$plugin_type" -name "*.so" 2>/dev/null | wc -l)
@@ -332,20 +335,20 @@ validate_appimage_structure() {
                 else
                     show_error "      $plugin_type directory empty (CRITICAL)"
                     log_to_report "  - ❌ $plugin_type: Directory empty (CRITICAL)"
+                    log_to_report "    **Fix**: Ensure qt6-base-dev is installed during build"
                     missing_essential=$((missing_essential + 1))
                 fi
             else
                 show_error "      $plugin_type directory missing (CRITICAL)"
                 log_to_report "  - ❌ $plugin_type: Directory missing (CRITICAL)"
+                log_to_report "    **Fix**: Install qt6-base-dev and verify quirk_copy_qt6_plugins function"
                 missing_essential=$((missing_essential + 1))
             fi
         done
         
-        # Check for Wayland plugins specifically (required for Qt6 builds)
+        # Check for Qt6 Wayland plugins (critical for modern Qt6 AppImages)
         local wayland_plugins_found=0
-        local wayland_plugin_dirs=("wayland-decoration-client" "wayland-graphics-integration-client" "wayland-shell-integration")
-        
-        for wayland_plugin in "${wayland_plugin_dirs[@]}"; do
+        for wayland_plugin in "${qt6_critical_plugins[@]}"; do
             if [ -d "$extract_dir/usr/plugins/$wayland_plugin" ]; then
                 local wayland_count=$(find "$extract_dir/usr/plugins/$wayland_plugin" -name "*.so" 2>/dev/null | wc -l)
                 if [ $wayland_count -gt 0 ]; then
@@ -353,24 +356,29 @@ validate_appimage_structure() {
                     log_to_report "  - ✅ $wayland_plugin: $wayland_count plugins"
                     wayland_plugins_found=$((wayland_plugins_found + 1))
                 else
-                    show_warning "      $wayland_plugin directory empty"
-                    log_to_report "  - ⚠️ $wayland_plugin: Directory empty"
+                    show_error "      $wayland_plugin directory empty (CRITICAL for Qt6)"
+                    log_to_report "  - ❌ $wayland_plugin: Directory empty (CRITICAL for Qt6)"
+                    log_to_report "    **Fix**: Install qt6-wayland qt6-wayland-dev packages"
+                    missing_qt6_critical=$((missing_qt6_critical + 1))
                 fi
             else
-                show_warning "      $wayland_plugin directory missing"
-                log_to_report "  - ⚠️ $wayland_plugin: Directory missing"
+                show_error "      $wayland_plugin directory missing (CRITICAL for Qt6)"
+                log_to_report "  - ❌ $wayland_plugin: Directory missing (CRITICAL for Qt6)"
+                log_to_report "    **Fix**: Install qt6-wayland qt6-wayland-dev and rebuild"
+                missing_qt6_critical=$((missing_qt6_critical + 1))
             fi
         done
         
         if [ $wayland_plugins_found -gt 0 ]; then
-            show_success "    Wayland plugins detected ($wayland_plugins_found types)"
-            log_to_report "- ✅ **Wayland Support**: $wayland_plugins_found Wayland plugin types found"
+            show_success "    Qt6 Wayland plugins detected ($wayland_plugins_found/3 types)"
+            log_to_report "- ✅ **Qt6 Wayland Support**: $wayland_plugins_found/3 Wayland plugin types found"
         else
-            show_warning "    No Wayland plugins found (may affect immutable OS compatibility)"
-            log_to_report "- ⚠️ **Wayland Support**: No Wayland plugins found"
+            show_error "    No Qt6 Wayland plugins found (CRITICAL for immutable OS compatibility)"
+            log_to_report "- ❌ **Qt6 Wayland Support**: No Wayland plugins found (CRITICAL)"
+            log_to_report "    **Impact**: AppImage will fail on Wayland-only systems (Bazzite, Silverblue)"
         fi
         
-        # Check for WebEngine plugins (optional but recommended)
+        # Check for WebEngine plugins (optional but recommended for web functionality)
         if [ -d "$extract_dir/usr/plugins/webengine" ]; then
             local webengine_count=$(find "$extract_dir/usr/plugins/webengine" -name "*.so" 2>/dev/null | wc -l)
             if [ $webengine_count -gt 0 ]; then
@@ -379,16 +387,43 @@ validate_appimage_structure() {
             else
                 show_warning "    WebEngine directory empty"
                 log_to_report "- ⚠️ **WebEngine Support**: Directory empty"
+                log_to_report "    **Fix**: Install qt6-webengine-dev for web functionality"
             fi
         else
             show_warning "    No WebEngine plugins found (optional)"
             log_to_report "- ⚠️ **WebEngine Support**: No WebEngine plugins found (optional)"
+            log_to_report "    **Note**: Web-based features may not work without WebEngine plugins"
+        fi
+        
+        # Additional Qt6 plugin validation for comprehensive support
+        local optional_plugins=("xcbglintegrations" "tls" "networkinformation")
+        local optional_found=0
+        for opt_plugin in "${optional_plugins[@]}"; do
+            if [ -d "$extract_dir/usr/plugins/$opt_plugin" ]; then
+                local opt_count=$(find "$extract_dir/usr/plugins/$opt_plugin" -name "*.so" 2>/dev/null | wc -l)
+                if [ $opt_count -gt 0 ]; then
+                    show_success "      $opt_plugin plugins: $opt_count (optional)"
+                    log_to_report "  - ✅ $opt_plugin: $opt_count plugins (optional)"
+                    optional_found=$((optional_found + 1))
+                fi
+            fi
+        done
+        
+        if [ $optional_found -gt 0 ]; then
+            log_to_report "- ✅ **Additional Support**: $optional_found optional plugin types present"
         fi
         
         # Fail validation if critical plugins are missing
-        if [ $missing_essential -gt 0 ]; then
-            show_error "    CRITICAL: $missing_essential essential plugin directories missing or empty"
-            log_to_report "- ❌ **CRITICAL FAILURE**: $missing_essential essential plugin directories missing"
+        local total_critical_missing=$((missing_essential + missing_qt6_critical))
+        if [ $total_critical_missing -gt 0 ]; then
+            show_error "    CRITICAL: $total_critical_missing critical plugin directories missing or empty"
+            log_to_report "- ❌ **CRITICAL FAILURE**: $total_critical_missing critical plugin directories missing"
+            log_to_report ""
+            log_to_report "**REQUIRED ACTIONS TO FIX:**"
+            log_to_report "1. Install missing Qt6 packages: \`sudo apt-get install qt6-base-dev qt6-wayland qt6-wayland-dev qt6-webengine-dev\`"
+            log_to_report "2. Verify quirk_copy_qt6_plugins function copied all required plugins"
+            log_to_report "3. Check STRICT_PLUGIN_VALIDATION=true is set during build"
+            log_to_report "4. Rebuild AppImage with: \`./build_appimage.sh -j \$(nproc)\`"
         fi
     else
         show_error "    Qt plugins directory not found (CRITICAL)"
