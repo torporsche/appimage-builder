@@ -1,6 +1,6 @@
 # Qt6 Plugin Validation Test Report
 
-**Generated:** Sun Aug 17 20:31:12 UTC 2025
+**Generated:** Sun Aug 17 20:44:06 UTC 2025
 **Target:** Qt6 AppImage Plugin Structure and Permissions
 **Repository:** torporsche/appimage-builder
 
@@ -58,6 +58,6 @@ This report validates Qt6 plugin structure and permissions in the built AppImage
 
 ---
 
-**Report Generated:** Sun Aug 17 20:31:12 UTC 2025  
+**Report Generated:** Sun Aug 17 20:44:06 UTC 2025  
 **Plugin Test Framework Version:** 1.0.0  
 **Repository:** torporsche/appimage-builder
