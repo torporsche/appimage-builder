@@ -88,10 +88,9 @@ DEBIANTARGET="x86_64-linux-gnu"
 APPIMAGE_ARCH="x86_64"
 APPIMAGE_RUNTIME_FILE="runtime-x86_64"
 LINUXDEPLOY_ARCH="x86_64"
-    add_default_cmake_options -DCMAKE_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu;/usr/lib64;/lib64" -DCMAKE_INCLUDE_PATH="/usr/include/x86_64-linux-gnu"
-    # Ensure PKG_CONFIG_PATH includes multiarch paths
-    export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH"
-fi
+add_default_cmake_options -DCMAKE_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu;/usr/lib64;/lib64" -DCMAKE_INCLUDE_PATH="/usr/include/x86_64-linux-gnu"
+# Ensure PKG_CONFIG_PATH includes multiarch paths
+export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH"
 
 # Skip tool downloads in DRY_RUN_CONFIGURE mode for CI reliability
 if [ -n "${DRY_RUN_CONFIGURE:-}" ]; then

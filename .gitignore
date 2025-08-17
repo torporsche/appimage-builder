@@ -15,3 +15,5 @@ openssl/
 test-output/
 tmp/
 *.log
+# Backup files
+*.backup
