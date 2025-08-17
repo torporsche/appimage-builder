@@ -58,9 +58,20 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Ensure proper linking for 32-bit builds
+# Ensure proper linking for 32-bit builds with AppImage portability
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# AppImage-specific RPATH configuration for portable execution
+set(CMAKE_INSTALL_RPATH "\$ORIGIN/../lib:\$ORIGIN/lib:\$ORIGIN")
+set(CMAKE_BUILD_RPATH "\$ORIGIN/../lib:\$ORIGIN/lib:\$ORIGIN")
+
+# Ensure all binaries have executable permissions for AppImage
+set(CMAKE_INSTALL_DEFAULT_PERMISSIONS
+    OWNER_READ OWNER_WRITE OWNER_EXECUTE
+    GROUP_READ GROUP_EXECUTE
+    WORLD_READ WORLD_EXECUTE
+)
 
 message(STATUS "Multilib CMake toolchain configured for 32-bit builds")

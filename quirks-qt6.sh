@@ -37,6 +37,7 @@ configure_qt6_wayland_fallbacks() {
   local wayland_available=false
   local required_wayland_components=0
   local found_wayland_components=0
+  local strict_validation="${STRICT_PLUGIN_VALIDATION:-true}"
   
   # Check for Wayland support with comprehensive validation
   local wayland_paths=(
@@ -52,17 +53,25 @@ configure_qt6_wayland_fallbacks() {
       show_status "Qt6 Wayland component found: $path"
     else
       show_status "Qt6 Wayland component missing: $path"
+      if [ "$strict_validation" = "true" ]; then
+        echo "ERROR: Required Qt6 Wayland component missing: $path" >&2
+        echo "Install with: sudo apt-get install qt6-wayland qt6-wayland-dev" >&2
+        exit 1
+      fi
     fi
   done
   
-  # Validate plugin directories exist and contain plugins
+  # Validate plugin directories exist and contain plugins with fail-fast
   local plugin_dirs=(
     "/usr/lib/x86_64-linux-gnu/qt6/plugins/platforms"
     "/usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-decoration-client"
     "/usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-graphics-integration-client"
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/wayland-shell-integration"
   )
   
   local plugins_validated=true
+  local critical_plugins_missing=0
+  
   for plugin_dir in "${plugin_dirs[@]}"; do
     if [ -d "$plugin_dir" ]; then
       local plugin_count=$(find "$plugin_dir" -name "*.so" 2>/dev/null | wc -l)
@@ -71,10 +80,42 @@ configure_qt6_wayland_fallbacks() {
       else
         show_status "Qt6 plugin directory empty: $plugin_dir"
         plugins_validated=false
+        critical_plugins_missing=$((critical_plugins_missing + 1))
+        if [ "$strict_validation" = "true" ]; then
+          echo "ERROR: Critical Qt6 plugin directory is empty: $plugin_dir" >&2
+          exit 1
+        fi
       fi
     else
       show_status "Qt6 plugin directory missing: $plugin_dir"
       plugins_validated=false
+      critical_plugins_missing=$((critical_plugins_missing + 1))
+      if [ "$strict_validation" = "true" ]; then
+        echo "ERROR: Critical Qt6 plugin directory missing: $plugin_dir" >&2
+        echo "Install with: sudo apt-get install qt6-wayland qt6-wayland-dev" >&2
+        exit 1
+      fi
+    fi
+  done
+  
+  # Strict validation for WebEngine plugins if enabled
+  local webengine_plugin_dirs=(
+    "/usr/lib/x86_64-linux-gnu/qt6/plugins/webengine"
+  )
+  
+  for plugin_dir in "${webengine_plugin_dirs[@]}"; do
+    if [ -d "$plugin_dir" ]; then
+      local plugin_count=$(find "$plugin_dir" -name "*.so" 2>/dev/null | wc -l)
+      if [ "$plugin_count" -gt 0 ]; then
+        show_status "Qt6 WebEngine plugin directory validated: $plugin_dir ($plugin_count plugins)"
+      else
+        show_status "Qt6 WebEngine plugin directory empty: $plugin_dir"
+        if [ "$strict_validation" = "true" ]; then
+          echo "WARNING: Qt6 WebEngine plugin directory is empty: $plugin_dir" >&2
+        fi
+      fi
+    else
+      show_status "Qt6 WebEngine plugin directory missing: $plugin_dir (optional)"
     fi
   done
   
@@ -83,6 +124,11 @@ configure_qt6_wayland_fallbacks() {
     wayland_available=true
     show_status "Qt6 Wayland support detected and validated"
   else
+    if [ "$strict_validation" = "true" ] && [ "$critical_plugins_missing" -gt 0 ]; then
+      echo "ERROR: $critical_plugins_missing critical Qt6 plugin directories missing or empty" >&2
+      echo "This will result in AppImage build failure. Stopping early." >&2
+      exit 1
+    fi
     show_status "Qt6 Wayland support not available or incomplete - using X11 fallback"
     if [ "$found_wayland_components" -eq 0 ]; then
       show_status "No Wayland components found. Install with: sudo apt-get install qt6-wayland qt6-wayland-dev"

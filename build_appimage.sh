@@ -211,6 +211,13 @@ create_build_directories
 check_system_resources
 rm -rf ${APP_DIR}
 mkdir -p ${APP_DIR}
+
+# Enable strict plugin validation for Qt6 builds to fail fast on missing plugins
+if [ -n "$MSA_QT6_OPT" ] || [ "$COMMIT_FILE_SUFFIX" = "-qt6" ]; then
+    export STRICT_PLUGIN_VALIDATION=true
+    show_status "Enabling strict plugin validation for Qt6 build"
+fi
+
 call_quirk init
 
 if [ -z "$SKIP_SOURCES" ]
