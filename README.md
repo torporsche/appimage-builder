@@ -1,14 +1,14 @@
 # AppImage builder for mcpelauncher-linux
 
-Clean, simplified AppImage builder focusing on x86_64 architecture with modern Qt6 framework support.
+Clean, simplified AppImage builder for x86_64 architecture with Qt6 framework support only.
 
 ## Quick Start
 
-This repository builds AppImages for the mcpelauncher-linux project using a simplified, single-architecture approach with Qt6 for improved compatibility and modern features.
+This repository builds AppImages for the mcpelauncher-linux project using a streamlined Qt6-only approach optimized for modern systems.
 
 ### Build Requirements
 - Ubuntu 22.04 LTS (or compatible)
-- Qt6 development libraries (default) or Qt5 (legacy)
+- Qt6 development libraries
 - clang compiler
 - Standard build tools
 
@@ -17,8 +17,8 @@ This repository builds AppImages for the mcpelauncher-linux project using a simp
 # 1. Test your environment with strict dependency validation
 ./test-dependencies.sh
 
-# 2. Build Qt6 AppImage (x86_64 only, MSA disabled, no 32-bit) - RECOMMENDED
-./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
+# 2. Build Qt6 AppImage (x86_64 only) - RECOMMENDED
+./build_appimage.sh -j $(nproc)
 
 # 3. Validate the built AppImage with comprehensive checks
 ./validate-appimage.sh
@@ -26,7 +26,7 @@ This repository builds AppImages for the mcpelauncher-linux project using a simp
 # 4. Run complete validation suite including functionality tests
 ./run-comprehensive-validation.sh
 
-# 5. Check AppImage compatibility across distributions (NEW)
+# 5. Check AppImage compatibility across distributions
 ./ensure-appimage-compatibility.sh output/mcpelauncher-ui-qt.AppImage
 
 # 6. Test OpenGL ES 3.0 support (NEW)
@@ -141,11 +141,11 @@ set -e
 ./integration-validation.sh post
 ```
 
-## Qt6 Migration
+## Qt6 Framework
 
-This repository now supports **Qt6 framework** as the primary build target, providing:
+This repository builds AppImages using the **Qt6 framework exclusively**, providing:
 
-### **Benefits of Qt6 Build:**
+### **Benefits of Qt6:**
 - **Modern Graphics Support**: Enhanced OpenGL/Vulkan support for AMD graphics (Z1 Extreme, RDNA3)
 - **Wayland Compatibility**: Native Wayland protocol support for immutable OS environments (Bazzite, Fedora Atomic)
 - **OpenGL ES 3.0 Support**: Improved graphics compatibility with hardware acceleration and software fallbacks
@@ -154,14 +154,15 @@ This repository now supports **Qt6 framework** as the primary build target, prov
 - **Security Updates**: Current security patches and vulnerability fixes
 - **Future Compatibility**: Alignment with upstream mcpelauncher development direction
 
-### **Build Variants:**
-- **Qt6 (Default)**: `./build_appimage.sh -t x86_64 -m -n -o -q quirks-qt6.sh`
-- **Qt5 (Legacy)**: `./build_appimage.sh -t x86_64 -m -n -q quirks-modern.sh`
+### **Build Command:**
+```bash
+./build_appimage.sh -j $(nproc)
+```
 
 ### **Target Environment Compatibility:**
 - **Bazzite OS** (Fedora Atomic 42 + AMD Z1 Extreme): Qt6 with Wayland support
-- **Ubuntu 22.04+**: Both Qt6 and Qt5 supported
-- **Immutable OS**: Qt6 provides better compatibility with read-only filesystems
+- **Ubuntu 22.04+**: Qt6 supported
+- **Immutable OS**: Qt6 provides excellent compatibility with read-only filesystems
 
 ### Validation Framework
 
@@ -169,7 +170,7 @@ This repository includes a comprehensive **AppImage Validation Framework** that 
 
 - **Build Success Verification**: Confirms all build phases completed without errors
 - **AppImage Quality Assessment**: Binary integrity, dependency bundling, size optimization  
-- **Component Integration Testing**: mcpelauncher components, Qt6/Qt5 GUI, OpenGL validation
+- **Component Integration Testing**: mcpelauncher components, Qt6 GUI, OpenGL validation
 - **Cross-Platform Compatibility**: GLIBC version checks, library compatibility testing
 - **Security Assessment**: Basic security validation and vulnerability checks
 - **Performance Benchmarks**: Startup time, file size, extraction performance
@@ -286,34 +287,30 @@ export STRICT_PLUGIN_VALIDATION=true
 # Analyze official AppImage for debugging crashes on Bazzite OS
 ./run_comprehensive_analysis.sh
 
-# Build with Qt6 for Bazzite OS compatibility (recommended)
-./build_appimage.sh -t x86_64 -m -n -o -j $(nproc) -q quirks-qt6.sh
-
-# Build with legacy Qt5 for older environments
-./build_appimage.sh -t x86_64 -m -n -j $(nproc) -q quirks-modern.sh
+# Build Qt6 AppImage for modern systems
+./build_appimage.sh -j $(nproc)
 ```
 
 ## Clean Restart Strategy
 
-This repository implements a **clean restart strategy** that removes accumulated complexity from multiple LLM agent revisions:
+This repository implements a **clean restart strategy** that removes accumulated complexity:
 
 - **Single Architecture**: x86_64 only, no multilib complexity
-- **Single Workflow**: One GitHub Actions job instead of three  
-- **Modern Base**: Ubuntu 22.04 LTS with Qt6 framework (Qt5 legacy support available)
-- **Components Disabled**: MSA and 32-bit builds disabled by default
-- **Files Removed**: 10 architecture/platform-specific files cleaned up
+- **Single Workflow**: One GitHub Actions job  
+- **Modern Base**: Ubuntu 22.04 LTS with Qt6 framework
+- **Simplified Components**: MSA and 32-bit builds removed
+- **Streamlined Files**: Architecture/platform-specific files removed
 
 ## Build Configuration
 
-### Default Build Flags
-- `-t x86_64`: Target x86_64 architecture only
-- `-m`: Disable MSA component builds  
-- `-n`: Disable 32-bit mcpelauncher-client builds
-- `-q quirks-qt6.sh`: Use Qt6-optimized build quirks
+### Default Build Command
+```bash
+./build_appimage.sh -j $(nproc)
+```
 
 ### Dependencies Installation (Ubuntu 22.04)
 
-For Qt6 builds (recommended):
+For Qt6 builds:
 ```bash
 # Install Qt6 dependencies using the provided script
 ./install-qt6-deps.sh
@@ -337,30 +334,13 @@ sudo apt-get install -y \
   libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev
 ```
 
-For Qt5 builds (legacy):
-```bash
-sudo apt-get update
-sudo apt-get install -y \
-  build-essential cmake git curl wget file ninja-build clang lld pkg-config \
-  libc6-dev libssl-dev libcurl4-openssl-dev zlib1g-dev libpng-dev \
-  libuv1-dev libzip-dev libglib2.0-dev \
-  qtbase5-dev qtbase5-dev-tools qttools5-dev qttools5-dev-tools qt5-qmake \
-  libqt5svg5-dev qtwebengine5-dev qtwebengine5-dev-tools \
-  libqt5webenginecore5 libqt5webenginewidgets5 qtdeclarative5-dev \
-  qml-module-qtquick-controls2 qml-module-qtquick-layouts \
-  qml-module-qtquick-window2 qml-module-qtquick-dialogs qml-module-qtwebengine \
-  libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
-  libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
-  libxtst6 libxss1 libasound2-dev libpulse-dev libudev-dev libevdev-dev libnss3-dev
-```
-
 ## Quality Assurance
 
 ### Validation Scripts
-- `integration-validation.sh` - **NEW** Pre/post-build validation ensuring reproducibility and deterministic output
+- `integration-validation.sh` - Pre/post-build validation ensuring reproducibility and deterministic output
 - `validate-appimage.sh` - Primary AppImage quality validation
-- `ensure-appimage-compatibility.sh` - **NEW** AppImage compatibility checker with system validation
-- `build_gles30_validator.sh` - **NEW** OpenGL ES 3.0 detection and validation tool
+- `ensure-appimage-compatibility.sh` - AppImage compatibility checker with system validation
+- `build_gles30_validator.sh` - OpenGL ES 3.0 detection and validation tool
 - `analyze-build-logs.sh` - Build performance and optimization analysis  
 - `test-appimage-functionality.sh` - Runtime functionality testing
 - `run-comprehensive-validation.sh` - Complete validation suite
@@ -368,15 +348,12 @@ sudo apt-get install -y \
 ### CI/CD Integration
 The GitHub Actions workflow automatically:
 1. Tests the build environment
-2. Builds x86_64 AppImage with MSA and 32-bit disabled
+2. Builds x86_64 AppImage with Qt6
 3. Runs comprehensive validation suite
 4. Uploads AppImage artifacts and validation reports
 
-#### CI Matrix Testing
-The repository includes a CI matrix workflow that tests critical build configurations:
-- **Qt Versions**: Qt5 (legacy) and Qt6 (modern)
-- **MSA Options**: Enabled and disabled
-- **Fast Configuration Testing**: Uses `DRY_RUN_CONFIGURE=1` mode to test CMake configuration without full compilation
+#### Fast Configuration Testing
+The repository supports `DRY_RUN_CONFIGURE=1` mode to test CMake configuration without full compilation:
 
 **DRY_RUN_CONFIGURE Mode:**
 ```bash
@@ -412,10 +389,9 @@ Game licenses can be revoked at any time by Microsoft/Mojang or Google.
 ## Project Links
 
 - [mcpelauncher Documentation](https://mcpelauncher.readthedocs.io/)
-- [MSA Requirements](https://mcpelauncher.readthedocs.io/en/latest/source_build/msa.html#prerequirements) (disabled by default)
 - [Launcher Requirements](https://mcpelauncher.readthedocs.io/en/latest/source_build/launcher.html#prerequirements)
 - [UI Requirements](https://mcpelauncher.readthedocs.io/en/latest/source_build/ui.html)
-- **[Compatibility Guide](COMPATIBILITY.md)** - **NEW** System requirements and troubleshooting
+- **[Compatibility Guide](COMPATIBILITY.md)** - System requirements and troubleshooting
 - [Validation Framework](VALIDATION.md)
 
 ## Analysis Tools

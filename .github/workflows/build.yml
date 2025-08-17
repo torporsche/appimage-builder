@@ -1,4 +1,4 @@
-name: Build AppImage
+name: Build AppImage - Qt6 x86_64 Only
 
 on:
   push:
@@ -89,9 +89,9 @@ jobs:
       run: |
         ./test-dependencies.sh
 
-    - name: Build AppImage (Qt6)
+    - name: Build AppImage (Qt6 x86_64)
       run: |
-        ./build_appimage.sh -t x86_64 -m -n -o -j ${MAKE_JOBS} -q quirks-qt6.sh
+        ./build_appimage.sh -t x86_64 -n -j ${MAKE_JOBS} -q quirks-qt6.sh
 
     - name: Validate AppImage Quality
       run: |

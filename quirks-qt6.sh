@@ -263,9 +263,6 @@ quirk_init() {
     show_status "WARNING: OpenSSL development packages not found via pkg-config"
   fi
   
-  # Set MSA_QT6_OPT flag to enable Qt6 Wayland plugin bundling
-  export MSA_QT6_OPT=1
-  
   # Validate Qt6 installation before proceeding
   if ! command -v qmake6 >/dev/null 2>&1; then
     echo "ERROR: Qt6 qmake not found. Install Qt6 development packages." >&2
@@ -299,12 +296,6 @@ quirk_init() {
   show_status "Qt6 build environment validated and ready for x86_64 (modern framework with Wayland support)"
 }
 
-quirk_build_msa() {
-  # MSA is disabled by default in clean restart strategy
-  # This function exists for compatibility but does nothing
-  show_status "MSA component disabled in clean restart strategy"
-  return 0
-}
 
 quirk_build_mcpelauncher() {
   # Modern launcher build configuration for x86_64 with Qt6

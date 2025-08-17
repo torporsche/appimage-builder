@@ -7,31 +7,44 @@ APP_DIR=${BUILD_DIR}/AppDir
 UPDATE_CMAKE_OPTIONS=""
 BUILD_NUM="0"
 TARGETARCH="x86_64"
+COMMIT_FILE_SUFFIX=""
+MSA_QT6_OPT=""
+OUTPUT_SUFFIX=""
 TAGNAME=""
 EXTRA_CMAKE_FLAGS=()
 GLIBC_COMPAT=""
 
-# Read a commit pin (Qt6 only)
+# Read a commit pin with suffix fallback (e.g., name-qt6.commit -> name.commit)
 get_commit_pin() {
     local base="$1"
+    local with_suffix="${base}${COMMIT_FILE_SUFFIX}.commit"
     local plain="${base}.commit"
+    if [[ -f "${with_suffix}" ]]; then
+        tr -d '\n\r' < "${with_suffix}"
+        return 0
+    fi
     if [[ -f "${plain}" ]]; then
         tr -d '\n\r' < "${plain}"
         return 0
     fi
-    echo "ERROR: Missing commit pin file: ${plain}" >&2
+    echo "ERROR: Missing commit pin file: ${with_suffix} or ${plain}" >&2
     exit 2
 }
 
-while getopts "h?q:j:u:i:k:s?r:l:g?" opt; do
+while getopts "h?q:j:u:i:k:t:n?m?o?s?p:r:l:g?" opt; do
     case "$opt" in
     h|\?)
-        echo "build.sh - Qt6 x86_64 AppImage Builder"
+        echo "build.sh"
         echo "-j  Specify the number of jobs (the -j arg to make)"
-        echo "-q  Specify the quirks file (default: quirks-qt6.sh)"
+        echo "-q  Specify the quirks file"
         echo "-u  Specify the update check URL"
         echo "-i  Specify the build id for update checking"
         echo "-k  Specify appimageupdate information"
+        echo "-t  Specify the target arch of the appimage"
+        echo "-n  Disable compiling mcpelauncher-client32 for 64bit targets"
+        echo "-m  Disable compiling msa"
+        echo "-o  Build qt6 AppImage"
+        echo "-p  Suffix"
         echo "-s  Skip sync sources"
         echo "-r  TAGNAME of the release"
         echo "-l  extracmakeflags for launcher"
@@ -50,6 +63,18 @@ while getopts "h?q:j:u:i:k:s?r:l:g?" opt; do
     k)  UPDATE_CMAKE_OPTIONS="$UPDATE_CMAKE_OPTIONS -DENABLE_APPIMAGE_UPDATE_CHECK=1"
         export UPDATE_INFORMATION="$OPTARG"
         ;;
+    t)  TARGETARCH=$OPTARG
+        ;;
+    n)  DISABLE_32BIT="1"
+        ;;
+    m)  DISABLE_MSA="1"
+        ;;
+    o)  COMMIT_FILE_SUFFIX="-qt6"
+        OUTPUT_SUFFIX="-qt6"
+        MSA_QT6_OPT="-DQT_VERSION=6"
+        ;;
+    p)  OUTPUT_SUFFIX="$OPTARG"
+        ;;
     s)  SKIP_SOURCES="1"
         ;;
     r)  TAGNAME="$OPTARG"
@@ -67,27 +92,82 @@ then
 fi
 
 DEFAULT_CMAKE_OPTIONS=()
+DEFAULT_CMAKE_OPTIONS32=()
 add_default_cmake_options() {
   DEFAULT_CMAKE_OPTIONS=("${DEFAULT_CMAKE_OPTIONS[@]}" "$@")
 }
+add_default_cmake_options32() {
+  DEFAULT_CMAKE_OPTIONS32=("${DEFAULT_CMAKE_OPTIONS32[@]}" "$@")
+}
 
-# Qt6 x86_64 compiler flags
+# Defensive: ensure only -D style options are forwarded to CMake for MSA
+sanitize_msa_qt_opt() {
+  if [[ -n "$MSA_QT6_OPT" && "${MSA_QT6_OPT}" != -D* ]]; then
+    show_status "Ignoring invalid MSA Qt option: ${MSA_QT6_OPT} (expected -D*); using Qt auto-detect"
+    MSA_QT6_OPT=""
+  fi
+}
+
+# Improved compiler flags for modern toolchain compatibility
+CFLAGS32="-DNDEBUG -fPIC -O2 $CFLAGS32"
 CFLAGS="-DNDEBUG -fPIC -O2 $CFLAGS"
+CXXFLAGS32="-I ${PWD}/curlappimageca -std=c++17 -fPIC -O2 $CXXFLAGS32"
 CXXFLAGS="-I ${PWD}/curlappimageca -std=c++17 -fPIC -O2 $CXXFLAGS"
 
 # Add GLIBC compatibility mode if requested
 if [ -n "$GLIBC_COMPAT" ]; then
     show_status "Enabling GLIBC compatibility mode (_GLIBCXX_USE_CXX11_ABI=0)"
+    CXXFLAGS32="-D_GLIBCXX_USE_CXX11_ABI=0 $CXXFLAGS32"
     CXXFLAGS="-D_GLIBCXX_USE_CXX11_ABI=0 $CXXFLAGS"
     export _GLIBCXX_USE_CXX11_ABI=0
 fi
 
 MCPELAUNCHERUI_CXXFLAGS="-DLAUNCHER_INIT_PATCH=\"if(!getenv(\\\"QTWEBENGINE_CHROMIUM_FLAGS\\\")) putenv(\\\"QTWEBENGINE_CHROMIUM_FLAGS=--no-sandbox\\\");\""
-# Set x86_64 target architecture (Qt6 only)
-DEBIANTARGET="x86_64-linux-gnu" 
-APPIMAGE_ARCH="x86_64"
-APPIMAGE_RUNTIME_FILE="runtime-x86_64"
-LINUXDEPLOY_ARCH="x86_64"
+if [ -n "$DISABLE_32BIT" ]
+then
+    MCPELAUNCHERUI_CXXFLAGS="-DDISABLE_32BIT=1 $MCPELAUNCHERUI_CXXFLAGS"
+fi
+if [ "$TARGETARCH" = "armhf" ]
+then
+    DEBIANTARGET="arm-linux-gnueabihf"
+    DEBIANTARGET32=""
+    APPIMAGE_ARCH="arm"
+    APPIMAGE_RUNTIME_FILE="runtime-armhf"
+    LINUXDEPLOY_ARCH="i386"
+    CFLAGS="-latomic --target=arm-linux-gnueabihf -march=armv7 -mfpu=neon $CFLAGS"
+    add_default_cmake_options -DCMAKE_TOOLCHAIN_FILE=${OUTPUT_DIR}/../armhftoolchain.txt -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=armhf 
+fi
+if [ "$TARGETARCH" = "arm64" ]
+then
+    DEBIANTARGET="aarch64-linux-gnu"
+    DEBIANTARGET32="arm-linux-gnueabihf"
+    APPIMAGE_ARCH="arm_aarch64"
+    APPIMAGE_RUNTIME_FILE="runtime-aarch64"
+    LINUXDEPLOY_ARCH="x86_64"
+    CFLAGS="-latomic --target=aarch64-linux-gnu $CFLAGS"
+    CFLAGS32="-latomic --target=arm-linux-gnueabihf -march=armv7 -mfpu=neon $CFLAGS32"
+    add_default_cmake_options32 -DCMAKE_TOOLCHAIN_FILE=${OUTPUT_DIR}/../armhftoolchain.txt -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=armhf 
+    add_default_cmake_options -DCMAKE_TOOLCHAIN_FILE=${OUTPUT_DIR}/../arm64toolchain.txt -DCPACK_DEBIAN_PACKAGE_ARCHITECTURE=arm64
+fi
+if [ "$TARGETARCH" = "x86" ]
+then
+    DEBIANTARGET="i386-linux-gnu"
+    DEBIANTARGET32=""
+    APPIMAGE_ARCH="i386"
+    APPIMAGE_RUNTIME_FILE="runtime-i686"
+    LINUXDEPLOY_ARCH="i386"
+    CFLAGS="-m32 $CFLAGS"
+fi
+if [ "$TARGETARCH" = "x86_64" ]
+then
+    DEBIANTARGET="x86_64-linux-gnu"
+    DEBIANTARGET32="i386-linux-gnu"
+    APPIMAGE_ARCH="x86_64"
+    APPIMAGE_RUNTIME_FILE="runtime-x86_64"
+    LINUXDEPLOY_ARCH="x86_64"
+    # Improved 32-bit support with better linking
+    CFLAGS32="-m32 -march=i686 -mtune=generic $CFLAGS32"
+    # Add better library search paths for x86_64
     add_default_cmake_options -DCMAKE_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu;/usr/lib64;/lib64" -DCMAKE_INCLUDE_PATH="/usr/include/x86_64-linux-gnu"
     # Ensure PKG_CONFIG_PATH includes multiarch paths
     export PKG_CONFIG_PATH="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:/usr/lib/pkgconfig:$PKG_CONFIG_PATH"
@@ -125,11 +205,6 @@ else
   popd
 fi
 
-# Set default quirks file to Qt6
-if [ -z "$QUIRKS_FILE" ]; then
-    QUIRKS_FILE="quirks-qt6.sh"
-fi
-
 load_quirks "$QUIRKS_FILE"
 
 create_build_directories
@@ -138,14 +213,22 @@ rm -rf ${APP_DIR}
 mkdir -p ${APP_DIR}
 
 # Enable strict plugin validation for Qt6 builds to fail fast on missing plugins
-export STRICT_PLUGIN_VALIDATION=true
-show_status "Enabling strict plugin validation for Qt6 build"
+if [ -n "$MSA_QT6_OPT" ] || [ "$COMMIT_FILE_SUFFIX" = "-qt6" ]; then
+    export STRICT_PLUGIN_VALIDATION=true
+    show_status "Enabling strict plugin validation for Qt6 build"
+fi
 
 call_quirk init
 
 if [ -z "$SKIP_SOURCES" ]
 then
     show_status "Downloading sources"
+    # Only fetch MSA if enabled (default is disabled)
+    if [ -z "$DISABLE_MSA" ]; then
+        download_repo msa https://github.com/minecraft-linux/msa-manifest.git "$(get_commit_pin msa)"
+    else
+        show_status "Skipping MSA source download (disabled)"
+    fi
     download_repo mcpelauncher https://github.com/minecraft-linux/mcpelauncher-manifest.git "$(get_commit_pin mcpelauncher)"
     download_repo mcpelauncher-ui https://github.com/minecraft-linux/mcpelauncher-ui-manifest.git "$(get_commit_pin mcpelauncher-ui)"
 fi
@@ -178,7 +261,71 @@ install_component() {
   popd
 }
 
-
+build_component32() {
+  show_status "Building $1 (32-bit)"
+  mkdir -p "$BUILD_DIR/$1"
+  pushd "$BUILD_DIR/$1"
+  
+  # Check available memory before building
+  available_mem=$(free | grep "Mem:" | awk '{print $7}')
+  if [ "$available_mem" -lt 1048576 ]; then # Less than 1GB
+    show_status "Warning: Low memory detected ($available_mem KB), reducing parallel jobs"
+    local jobs=$((MAKE_JOBS / 2))
+    [ "$jobs" -lt 1 ] && jobs=1
+  else
+    local jobs=$MAKE_JOBS
+  fi
+  
+  echo "cmake" "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1"
+  PKG64_CONFIG_PATH="${PKG_CONFIG_PATH}"
+  export PKG_CONFIG_PATH=""
+  
+  # CMake configuration with timeout
+  timeout 600 cmake "${CMAKE_OPTIONS[@]}" "$SOURCE_DIR/$1" || {
+    echo "CMake configuration timed out or failed for $1"
+    export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+    popd
+    return 1
+  }
+  
+  # Early return for dry-run configuration mode
+  if [ -n "${DRY_RUN_CONFIGURE:-}" ]; then
+    show_status "DRY_RUN_CONFIGURE: CMake configuration completed for $1 (32-bit), skipping build"
+    export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+    popd
+    return 0
+  fi
+  
+  # Fix library paths for 32-bit
+  sed -i "s/\/usr\/lib\/x86_64-linux-gnu/\/usr\/lib\/$DEBIANTARGET32/g" CMakeCache.txt
+  sed -i "s/\/usr\/include\/x86_64-linux-gnu/\/usr\/include\/$DEBIANTARGET32/g" CMakeCache.txt
+  
+  # Build with timeout and memory monitoring
+  if [ -f "build.ninja" ]; then
+    timeout 1800 ninja -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 ninja -j1 || {
+        echo "Build failed for $1 even with single job"
+        export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+        popd
+        return 1
+      }
+    }
+  else
+    timeout 1800 make -j${jobs} || {
+      echo "Build timed out or failed for $1, trying with single job"
+      timeout 3600 make -j1 || {
+        echo "Build failed for $1 even with single job"
+        export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+        popd
+        return 1
+      }
+    }
+  fi
+  
+  export PKG_CONFIG_PATH="${PKG64_CONFIG_PATH}"
+  popd
+}
 
 build_component64() {
   show_status "Building $1 (64-bit)"
@@ -239,10 +386,35 @@ build_component64() {
   popd
 }
 
-
+if [ -z "$DISABLE_MSA" ]
+then
+    sanitize_msa_qt_opt
+    reset_cmake_options
+    add_cmake_options "${DEFAULT_CMAKE_OPTIONS[@]}" -DCMAKE_ASM_FLAGS="$MSA_CFLAGS $CFLAGS" -DCMAKE_C_FLAGS="$MSA_CFLAGS $CFLAGS" -DCMAKE_CXX_FLAGS="$MSA_CXXFLAGS $MSA_CFLAGS $CXXFLAGS $CFLAGS"
+    add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_MSA_QT_UI=ON -DMSA_UI_PATH_DEV=OFF $MSA_QT6_OPT
+    # Add modern build flags for better compatibility
+    add_cmake_options -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release
+    # Improve library detection
+    add_cmake_options -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
+    call_quirk build_msa
+    build_component64 msa
+    install_component msa
+fi
+if [ -n "$DEBIANTARGET32" ] && [ -z "$DISABLE_32BIT" ]
+then
+    reset_cmake_options
+    add_cmake_options "${DEFAULT_CMAKE_OPTIONS32[@]}" -DCMAKE_ASM_FLAGS="$MCPELAUNCHER_CFLAGS32 $CFLAGS32" -DCMAKE_C_FLAGS="$MCPELAUNCHER_CFLAGS32 $CFLAGS32" -DCMAKE_CXX_FLAGS="$MCPELAUNCHER_CXXFLAGS32 $MCPELAUNCHER_CFLAGS32 $CXXFLAGS32 $CFLAGS32"
+    add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DMSA_DAEMON_PATH=. -DXAL_WEBVIEW_QT_PATH=. -DBUILD_UI=OFF
+    add_cmake_options "${EXTRA_CMAKE_FLAGS[@]}"
+    call_quirk build_mcpelauncher32
+    build_component32 mcpelauncher
+    cp "$BUILD_DIR/mcpelauncher/mcpelauncher-client/mcpelauncher-client" "${APP_DIR}/usr/bin/mcpelauncher-client32"
+    #cleanup
+    rm -r "$BUILD_DIR/mcpelauncher/"
+fi
 reset_cmake_options
 add_cmake_options "${DEFAULT_CMAKE_OPTIONS[@]}" -DCMAKE_ASM_FLAGS="$MCPELAUNCHER_CFLAGS $CFLAGS" -DCMAKE_C_FLAGS="$MCPELAUNCHER_CFLAGS $CFLAGS" -DCMAKE_CXX_FLAGS="$MCPELAUNCHER_CXXFLAGS $MCPELAUNCHER_CFLAGS $CXXFLAGS $CFLAGS"
-add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DENABLE_QT_ERROR_UI=OFF
+add_cmake_options -DCMAKE_INSTALL_PREFIX=/usr -DMSA_DAEMON_PATH=. -DXAL_WEBVIEW_QT_PATH=. -DENABLE_QT_ERROR_UI=OFF
 # Add modern build flags for better compatibility
 add_cmake_options -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_BUILD_TYPE=Release
 add_cmake_options -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
@@ -313,10 +485,12 @@ check_run "$LINUXDEPLOY_BIN" --appdir "$APP_DIR" -i "$BUILD_DIR/mcpelauncher-ui-
 
 export QML_SOURCES_PATHS="$SOURCE_DIR/mcpelauncher-ui/mcpelauncher-ui-qt/qml/:$SOURCE_DIR/mcpelauncher/mcpelauncher-webview"
 # Bundle Qt6 Wayland plugins for native Wayland support - check for Qt6 build indicators
-show_status "Bundling Qt6 Wayland platform plugins for native Wayland support"
-export EXTRA_PLATFORM_PLUGINS="libqwayland-egl.so;libqwayland-generic.so"
-export EXTRA_QT_PLUGINS="wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration"
-check_run mkdir -p "$APP_DIR/usr/plugins/"
+if [ -n "$MSA_QT6_OPT" ] || [ "$COMMIT_FILE_SUFFIX" = "-qt6" ]
+then
+    show_status "Bundling Qt6 Wayland platform plugins for native Wayland support"
+    export EXTRA_PLATFORM_PLUGINS="libqwayland-egl.so;libqwayland-generic.so"
+    export EXTRA_QT_PLUGINS="wayland-decoration-client;wayland-graphics-integration-client;wayland-shell-integration"
+    check_run mkdir -p "$APP_DIR/usr/plugins/"
     
     # Validate Wayland plugin paths before copying
     wayland_plugins_base="/usr/lib/$DEBIANTARGET/qt6/plugins"
@@ -331,6 +505,7 @@ check_run mkdir -p "$APP_DIR/usr/plugins/"
     else
         show_status "Qt6 Wayland plugin directories not found - native Wayland support may be limited"
     fi
+fi
 check_run "$LINUXDEPLOY_PLUGIN_QT_BIN" --appdir "$APP_DIR"
 
 # libnss needs to be included for google login support
