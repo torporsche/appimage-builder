@@ -25,6 +25,12 @@ This repository builds AppImages for the mcpelauncher-linux project using a simp
 
 # Validate the built AppImage
 ./run-comprehensive-validation.sh
+
+# Check AppImage compatibility (NEW)
+./ensure-appimage-compatibility.sh output/mcpelauncher-ui-qt.AppImage
+
+# Test OpenGL ES 3.0 support (NEW)
+./build_gles30_validator.sh all
 ```
 
 ## Qt6 Migration
@@ -34,6 +40,8 @@ This repository now supports **Qt6 framework** as the primary build target, prov
 ### **Benefits of Qt6 Build:**
 - **Modern Graphics Support**: Enhanced OpenGL/Vulkan support for AMD graphics (Z1 Extreme, RDNA3)
 - **Wayland Compatibility**: Native Wayland protocol support for immutable OS environments (Bazzite, Fedora Atomic)
+- **OpenGL ES 3.0 Support**: Improved graphics compatibility with hardware acceleration and software fallbacks
+- **Enhanced Validation**: Comprehensive compatibility checking and dependency validation
 - **Performance Improvements**: Qt6's optimized rendering pipeline and memory management
 - **Security Updates**: Current security patches and vulnerability fixes
 - **Future Compatibility**: Alignment with upstream mcpelauncher development direction
@@ -143,6 +151,8 @@ sudo apt-get install -y \
 
 ### Validation Scripts
 - `validate-appimage.sh` - Primary AppImage quality validation
+- `ensure-appimage-compatibility.sh` - **NEW** AppImage compatibility checker with system validation
+- `build_gles30_validator.sh` - **NEW** OpenGL ES 3.0 detection and validation tool
 - `analyze-build-logs.sh` - Build performance and optimization analysis  
 - `test-appimage-functionality.sh` - Runtime functionality testing
 - `run-comprehensive-validation.sh` - Complete validation suite
@@ -197,6 +207,8 @@ Game licenses can be revoked at any time by Microsoft/Mojang or Google.
 - [MSA Requirements](https://mcpelauncher.readthedocs.io/en/latest/source_build/msa.html#prerequirements) (disabled by default)
 - [Launcher Requirements](https://mcpelauncher.readthedocs.io/en/latest/source_build/launcher.html#prerequirements)
 - [UI Requirements](https://mcpelauncher.readthedocs.io/en/latest/source_build/ui.html)
+- **[Compatibility Guide](COMPATIBILITY.md)** - **NEW** System requirements and troubleshooting
+- [Validation Framework](VALIDATION.md)
 
 ## Analysis Tools
 
