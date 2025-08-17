@@ -216,18 +216,23 @@ validate_appimage_structure() {
     local extract_dir="$1"
     local filename="$2"
     
-    show_status "  Analyzing AppImage structure"
+    show_status "  Analyzing AppImage structure with enhanced validation"
     
-    # Check for AppRun
+    # Check for AppRun with executable permissions
     if [ -f "$extract_dir/AppRun" ]; then
-        show_success "    AppRun script present"
-        log_to_report "- ✅ **AppRun**: Script present"
+        if [ -x "$extract_dir/AppRun" ]; then
+            show_success "    AppRun script present and executable"
+            log_to_report "- ✅ **AppRun**: Script present and executable"
+        else
+            show_error "    AppRun script present but not executable"
+            log_to_report "- ❌ **AppRun**: Script not executable"
+        fi
     else
         show_error "    AppRun script missing"
         log_to_report "- ❌ **AppRun**: Script missing"
     fi
     
-    # Check for desktop file
+    # Check for desktop file with validation
     local desktop_files=($(find "$extract_dir" -name "*.desktop" 2>/dev/null))
     if [ ${#desktop_files[@]} -gt 0 ]; then
         show_success "    Desktop file(s) found: ${#desktop_files[@]}"
@@ -250,11 +255,14 @@ validate_appimage_structure() {
         log_to_report "- ⚠️ **Icon Files**: Not found"
     fi
     
-    # Check for main executable
+    # Check for main executable with comprehensive validation
+    local main_executable=""
     if [ -f "$extract_dir/usr/bin/mcpelauncher-ui-qt" ]; then
+        main_executable="$extract_dir/usr/bin/mcpelauncher-ui-qt"
         show_success "    Main executable: mcpelauncher-ui-qt"
         log_to_report "- ✅ **Main Executable**: mcpelauncher-ui-qt found"
     elif [ -f "$extract_dir/usr/bin/mcpelauncher-ui" ]; then
+        main_executable="$extract_dir/usr/bin/mcpelauncher-ui"
         show_success "    Main executable: mcpelauncher-ui"
         log_to_report "- ✅ **Main Executable**: mcpelauncher-ui found"
     else
@@ -262,24 +270,107 @@ validate_appimage_structure() {
         log_to_report "- ❌ **Main Executable**: Not found"
     fi
     
-    # Check library bundling
+    # Validate main executable if found
+    if [ -n "$main_executable" ]; then
+        if [ -x "$main_executable" ]; then
+            show_success "    Main executable has correct permissions"
+            log_to_report "- ✅ **Permissions**: Main executable is executable"
+            
+            # Check executable dependencies
+            if command -v ldd >/dev/null 2>&1; then
+                local missing_deps=$(ldd "$main_executable" 2>/dev/null | grep "not found" | wc -l)
+                if [ "$missing_deps" -eq 0 ]; then
+                    show_success "    Main executable dependencies satisfied"
+                    log_to_report "- ✅ **Dependencies**: All dependencies satisfied"
+                else
+                    show_warning "    Main executable has $missing_deps missing dependencies"
+                    log_to_report "- ⚠️ **Dependencies**: $missing_deps missing dependencies"
+                fi
+            fi
+        else
+            show_error "    Main executable not executable"
+            log_to_report "- ❌ **Permissions**: Main executable not executable"
+        fi
+    fi
+    
+    # Check library bundling with enhanced validation
     local lib_count=$(find "$extract_dir/usr/lib" -name "*.so*" 2>/dev/null | wc -l)
     if [ $lib_count -gt 0 ]; then
         show_success "    Bundled libraries: $lib_count"
         log_to_report "- ✅ **Bundled Libraries**: $lib_count libraries found"
+        
+        # Check for Qt6 libraries specifically
+        local qt6_lib_count=$(find "$extract_dir/usr/lib" -name "*Qt6*" 2>/dev/null | wc -l)
+        if [ $qt6_lib_count -gt 0 ]; then
+            show_success "    Qt6 libraries bundled: $qt6_lib_count"
+            log_to_report "- ✅ **Qt6 Libraries**: $qt6_lib_count Qt6 libraries bundled"
+        else
+            show_warning "    No Qt6 libraries found in bundle"
+            log_to_report "- ⚠️ **Qt6 Libraries**: No Qt6 libraries found"
+        fi
     else
         show_warning "    No bundled libraries found"
         log_to_report "- ⚠️ **Bundled Libraries**: None found"
     fi
     
-    # Check Qt plugins
+    # Check Qt plugins with comprehensive validation
     if [ -d "$extract_dir/usr/plugins" ]; then
         local plugin_count=$(find "$extract_dir/usr/plugins" -name "*.so" 2>/dev/null | wc -l)
         show_success "    Qt plugins directory with $plugin_count plugins"
         log_to_report "- ✅ **Qt Plugins**: $plugin_count plugins found"
+        
+        # Check for essential Qt platform plugins
+        local essential_plugins=("platforms" "imageformats" "iconengines")
+        for plugin_type in "${essential_plugins[@]}"; do
+            if [ -d "$extract_dir/usr/plugins/$plugin_type" ]; then
+                local type_count=$(find "$extract_dir/usr/plugins/$plugin_type" -name "*.so" 2>/dev/null | wc -l)
+                if [ $type_count -gt 0 ]; then
+                    show_success "      $plugin_type plugins: $type_count"
+                    log_to_report "  - ✅ $plugin_type: $type_count plugins"
+                else
+                    show_warning "      $plugin_type directory empty"
+                    log_to_report "  - ⚠️ $plugin_type: Directory empty"
+                fi
+            else
+                show_warning "      $plugin_type directory missing"
+                log_to_report "  - ⚠️ $plugin_type: Directory missing"
+            fi
+        done
+        
+        # Check for Wayland plugins specifically
+        if [ -d "$extract_dir/usr/plugins/wayland-decoration-client" ] || \
+           [ -d "$extract_dir/usr/plugins/wayland-graphics-integration-client" ]; then
+            show_success "    Wayland plugins detected"
+            log_to_report "- ✅ **Wayland Support**: Wayland plugins found"
+        else
+            show_warning "    No Wayland plugins found"
+            log_to_report "- ⚠️ **Wayland Support**: No Wayland plugins found"
+        fi
     else
         show_warning "    Qt plugins directory not found"
         log_to_report "- ⚠️ **Qt Plugins**: Directory not found"
+    fi
+    
+    # Validate RPATH settings for bundled libraries
+    if command -v readelf >/dev/null 2>&1 && [ -n "$main_executable" ]; then
+        local rpath_info=$(readelf -d "$main_executable" 2>/dev/null | grep -E "(RPATH|RUNPATH)" || true)
+        if [ -n "$rpath_info" ]; then
+            show_success "    RPATH/RUNPATH configured for library loading"
+            log_to_report "- ✅ **RPATH**: Configured for bundled libraries"
+        else
+            show_warning "    No RPATH/RUNPATH found (may rely on LD_LIBRARY_PATH)"
+            log_to_report "- ⚠️ **RPATH**: Not configured (fallback to LD_LIBRARY_PATH)"
+        fi
+    fi
+    
+    # Check file permissions
+    local executable_count=$(find "$extract_dir/usr/bin" -type f -executable 2>/dev/null | wc -l)
+    if [ $executable_count -gt 0 ]; then
+        show_success "    Executable files have correct permissions: $executable_count"
+        log_to_report "- ✅ **Permissions**: $executable_count executables with correct permissions"
+    else
+        show_warning "    No executable files found or incorrect permissions"
+        log_to_report "- ⚠️ **Permissions**: No executables found with correct permissions"
     fi
 }
 

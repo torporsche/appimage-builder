@@ -1,42 +1,132 @@
 #!/bin/bash
-# Test script to validate dependencies and build environment
+# Test script to validate dependencies and build environment with strict checking
+# Fails early on missing critical dependencies
 
 set -e
 
-echo "=== Testing Build Dependencies ==="
+echo "=== Testing Build Dependencies with Strict Validation ==="
 
 # Detect target architecture
 TARGET_ARCH="${TARGETARCH:-$(uname -m)}"
 echo "Target architecture: $TARGET_ARCH"
 
-# Test basic build tools
+# Test basic build tools with fail-fast behavior
 echo "Testing basic build tools..."
-which gcc || echo "gcc not found"
-which g++ || echo "g++ not found"
-which clang || echo "clang not found"
-which clang++ || echo "clang++ not found"
-which cmake || echo "cmake not found"
-which ninja || echo "ninja not found"
-which make || echo "make not found"
+MISSING_TOOLS=()
+REQUIRED_TOOLS=("gcc" "g++" "cmake" "ninja" "make" "git" "pkg-config")
 
-# Test pkg-config
+for tool in "${REQUIRED_TOOLS[@]}"; do
+    if command -v "$tool" >/dev/null 2>&1; then
+        echo "✅ $tool: $(command -v $tool)"
+    else
+        echo "❌ $tool: NOT FOUND"
+        MISSING_TOOLS+=("$tool")
+    fi
+done
+
+# Check for at least one C++ compiler
+if ! command -v clang++ >/dev/null 2>&1 && ! command -v g++ >/dev/null 2>&1; then
+    echo "❌ No C++ compiler found (clang++ or g++ required)"
+    MISSING_TOOLS+=("clang++ or g++")
+fi
+
+if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+    echo ""
+    echo "ERROR: Missing required build tools: ${MISSING_TOOLS[*]}"
+    echo "Install with: sudo apt-get install build-essential cmake ninja-build git pkg-config"
+    exit 1
+fi
+
+# Test pkg-config with validation
+echo ""
 echo "Testing pkg-config..."
-pkg-config --version || echo "pkg-config not found"
+if command -v pkg-config >/dev/null 2>&1; then
+    PKG_CONFIG_VERSION=$(pkg-config --version)
+    echo "✅ pkg-config: $PKG_CONFIG_VERSION"
+    
+    # Test essential pkg-config packages
+    ESSENTIAL_PACKAGES=("openssl" "zlib")
+    for package in "${ESSENTIAL_PACKAGES[@]}"; do
+        if pkg-config --exists "$package" 2>/dev/null; then
+            echo "✅ pkg-config package: $package"
+        else
+            echo "❌ pkg-config package: $package (missing development package)"
+        fi
+    done
+else
+    echo "❌ pkg-config: NOT FOUND"
+    exit 1
+fi
 
-# Test compiler versions
+# Test compiler versions with stricter validation
+echo ""
 echo "Testing compiler versions..."
-gcc --version | head -1 || echo "gcc version check failed"
-clang --version | head -1 || echo "clang version check failed"
-cmake --version | head -1 || echo "cmake version check failed"
+if command -v gcc >/dev/null 2>&1; then
+    GCC_VERSION=$(gcc --version | head -1)
+    echo "✅ GCC: $GCC_VERSION"
+    
+    # Check GCC version is reasonable (7.0+)
+    GCC_MAJOR=$(gcc -dumpversion | cut -d. -f1)
+    if [ "$GCC_MAJOR" -lt 7 ]; then
+        echo "⚠️  WARNING: GCC version may be too old for modern C++17 features"
+    fi
+else
+    echo "❌ GCC: NOT FOUND"
+fi
 
-# Test Qt detection
-echo "Testing Qt detection..."
+if command -v clang >/dev/null 2>&1; then
+    CLANG_VERSION=$(clang --version | head -1)
+    echo "✅ Clang: $CLANG_VERSION"
+else
+    echo "⚠️  Clang: NOT FOUND (recommended for Qt6 builds)"
+fi
+
+if command -v cmake >/dev/null 2>&1; then
+    CMAKE_VERSION=$(cmake --version | head -1)
+    echo "✅ CMake: $CMAKE_VERSION"
+    
+    # Check CMake version is adequate (3.16+)
+    CMAKE_VERSION_NUM=$(cmake --version | head -1 | grep -o '[0-9]\+\.[0-9]\+' | head -1)
+    CMAKE_MAJOR=$(echo "$CMAKE_VERSION_NUM" | cut -d. -f1)
+    CMAKE_MINOR=$(echo "$CMAKE_VERSION_NUM" | cut -d. -f2)
+    if [ "$CMAKE_MAJOR" -lt 3 ] || ([ "$CMAKE_MAJOR" -eq 3 ] && [ "$CMAKE_MINOR" -lt 16 ]); then
+        echo "❌ ERROR: CMake version too old. Qt6 requires CMake 3.16+"
+        exit 1
+    fi
+else
+    echo "❌ CMake: NOT FOUND"
+    exit 1
+fi
+
+# Test Qt detection with strict validation
+echo ""
+echo "Testing Qt detection with strict requirements..."
+QT5_FOUND=false
+QT6_FOUND=false
+
 if command -v qmake >/dev/null 2>&1; then
-    echo "Qt5 qmake version: $(qmake --version)"
+    QT5_VERSION=$(qmake --version | grep "Qt version" | head -1)
+    echo "✅ Qt5 qmake: $QT5_VERSION"
+    QT5_FOUND=true
+else
+    echo "⚠️  Qt5 qmake: NOT FOUND"
 fi
 
 if command -v qmake6 >/dev/null 2>&1; then
-    echo "Qt6 qmake version: $(qmake6 --version)"
+    QT6_VERSION=$(qmake6 --version | grep "Qt version" | head -1)
+    echo "✅ Qt6 qmake: $QT6_VERSION"
+    QT6_FOUND=true
+else
+    echo "❌ Qt6 qmake: NOT FOUND"
+fi
+
+# Require at least Qt6 for modern builds
+if [ "$QT6_FOUND" = "false" ]; then
+    echo ""
+    echo "ERROR: Qt6 is required for modern AppImage builds"
+    echo "Install with: sudo apt-get install qt6-base-dev qt6-tools-dev qmake6"
+    echo "Or run: ./install-qt6-deps.sh"
+    exit 1
 fi
 
 # Test CMake Qt finding
@@ -69,30 +159,61 @@ else
     echo "Qt5 CMake detection: FAILED"
 fi
 
-# Test Qt6 detection via CMake with more comprehensive component testing
-echo "Testing Qt6 detection..."
+# Test Qt6 detection via CMake with comprehensive component validation
+echo ""
+echo "Testing Qt6 detection and component validation..."
 cat > CMakeLists.txt << 'EOF'
 cmake_minimum_required(VERSION 3.16)
 project(TestQt6)
-find_package(Qt6 COMPONENTS Core Widgets WebEngine WebEngineWidgets WaylandClient QUIET)
-if(Qt6_FOUND)
-    message(STATUS "Qt6 found: ${Qt6_VERSION}")
-    message(STATUS "Qt6 Core found: ${Qt6Core_FOUND}")
-    message(STATUS "Qt6 Widgets found: ${Qt6Widgets_FOUND}")
-    message(STATUS "Qt6 WebEngine found: ${Qt6WebEngine_FOUND}")
-    message(STATUS "Qt6 WebEngineWidgets found: ${Qt6WebEngineWidgets_FOUND}")
-    message(STATUS "Qt6 WaylandClient found: ${Qt6WaylandClient_FOUND}")
+
+# Test essential Qt6 components
+find_package(Qt6 COMPONENTS Core Widgets Gui REQUIRED)
+message(STATUS "✅ Qt6 Essential: Core=${Qt6Core_FOUND}, Widgets=${Qt6Widgets_FOUND}, Gui=${Qt6Gui_FOUND}")
+
+# Test optional but important components
+find_package(Qt6 COMPONENTS OpenGL QUIET)
+if(Qt6OpenGL_FOUND)
+    message(STATUS "✅ Qt6 OpenGL: Available")
 else()
-    message(STATUS "Qt6 not found")
+    message(STATUS "⚠️  Qt6 OpenGL: Missing (install libqt6opengl6-dev)")
 endif()
+
+find_package(Qt6 COMPONENTS WebEngine WebEngineWidgets QUIET)
+if(Qt6WebEngine_FOUND AND Qt6WebEngineWidgets_FOUND)
+    message(STATUS "✅ Qt6 WebEngine: Available")
+else()
+    message(STATUS "⚠️  Qt6 WebEngine: Missing (install qt6-webengine-dev)")
+endif()
+
+find_package(Qt6 COMPONENTS WaylandClient QUIET)
+if(Qt6WaylandClient_FOUND)
+    message(STATUS "✅ Qt6 Wayland: Available")
+else()
+    message(STATUS "⚠️  Qt6 Wayland: Missing (install qt6-wayland-dev)")
+endif()
+
+message(STATUS "Qt6 Version: ${Qt6_VERSION}")
+message(STATUS "Qt6 Installation: ${Qt6_DIR}")
 EOF
 
+QT6_CMAKE_SUCCESS=false
 if cmake -S . -B build_qt6 >/dev/null 2>&1; then
-    echo "Qt6 CMake detection: SUCCESS"
-    # Show Qt6 details if found
-    cmake -S . -B build_qt6 2>&1 | grep -i "qt6" || true
+    echo "✅ Qt6 CMake detection: SUCCESS"
+    QT6_CMAKE_SUCCESS=true
+    # Show detailed Qt6 component status
+    cmake -S . -B build_qt6 2>&1 | grep -E "(Qt6|✅|⚠️)" || true
 else
-    echo "Qt6 CMake detection: FAILED"
+    echo "❌ Qt6 CMake detection: FAILED"
+    echo "   This indicates Qt6 development packages are not properly installed"
+fi
+
+if [ "$QT6_CMAKE_SUCCESS" = "false" ]; then
+    echo ""
+    echo "ERROR: Qt6 CMake configuration failed"
+    echo "Install Qt6 development packages with:"
+    echo "  sudo apt-get install qt6-base-dev qt6-tools-dev"
+    echo "Or run: ./install-qt6-deps.sh"
+    exit 1
 fi
 
 # Test OpenGL libraries
@@ -293,6 +414,51 @@ fi
 
 echo ""
 echo "=== Dependency Validation Summary ==="
+echo ""
+
+# Final validation summary
+VALIDATION_ERRORS=0
+VALIDATION_WARNINGS=0
+
+echo "Performing final dependency validation..."
+
+# Check critical requirements
+if [ "$QT6_FOUND" = "false" ]; then
+    echo "❌ CRITICAL: Qt6 qmake not available"
+    VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+fi
+
+if [ "$QT6_CMAKE_SUCCESS" = "false" ]; then
+    echo "❌ CRITICAL: Qt6 CMake configuration failed"
+    VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+fi
+
+if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+    echo "❌ CRITICAL: Missing build tools: ${MISSING_TOOLS[*]}"
+    VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+fi
+
+# Check for common issues and provide solutions
+if [ "$VALIDATION_ERRORS" -gt 0 ]; then
+    echo ""
+    echo "🔥 VALIDATION FAILED: $VALIDATION_ERRORS critical errors found"
+    echo ""
+    echo "To fix Qt6 issues, run:"
+    echo "  ./install-qt6-deps.sh"
+    echo ""
+    echo "Or install manually:"
+    echo "  sudo apt-get update"
+    echo "  sudo apt-get install qt6-base-dev qt6-tools-dev qt6-webengine-dev qt6-wayland-dev"
+    echo ""
+    exit 1
+else
+    echo "✅ All critical dependencies validated successfully"
+fi
+
+if [ "$VALIDATION_WARNINGS" -gt 0 ]; then
+    echo "⚠️  $VALIDATION_WARNINGS warnings found - build may succeed but some features might be limited"
+fi
+
 echo ""
 echo "If Qt6 Wayland components are missing, install with:"
 echo "  sudo apt-get install qt6-wayland qt6-wayland-dev"
