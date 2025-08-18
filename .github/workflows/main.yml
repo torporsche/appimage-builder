@@ -170,3 +170,13 @@ jobs:
         path: validation/*.md
         retention-days: 30
 
+    - name: Upload build and validation logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-logs
+        path: |
+          build.log
+          validate.log
+        retention-days: 30
+

@@ -276,6 +276,63 @@ See [VALIDATION.md](VALIDATION.md) for complete documentation.
 
 ## Troubleshooting
 
+### Build and Validation Logs
+
+The build system automatically creates detailed log files to help diagnose issues:
+
+#### Log Files Location
+
+- **`build.log`** - Complete build process output, errors, and timing information
+- **`validate.log`** - AppImage validation results, quality checks, and compatibility analysis
+
+#### Accessing Logs Locally
+
+```bash
+# View build logs in real-time during build
+tail -f build.log
+
+# Check for build errors
+grep -i error build.log
+
+# Review validation results
+cat validate.log
+
+# Search for specific issues
+grep -i "failed\|error\|warning" build.log validate.log
+```
+
+#### Accessing Logs in CI/CD
+
+When builds fail in GitHub Actions, logs are automatically uploaded as artifacts:
+
+1. **Go to the failed workflow run** on GitHub Actions
+2. **Scroll to the "Artifacts" section** at the bottom of the page
+3. **Download "build-logs"** artifact containing both `build.log` and `validate.log`
+4. **Extract and review** the logs for error details
+
+#### Common Log Analysis Patterns
+
+```bash
+# Check for dependency issues
+grep -i "not found\|missing" build.log
+
+# Look for AppImage creation failures
+grep -A 5 -B 5 "AppImage.*failed" build.log
+
+# Find validation failures
+grep -A 10 "VALIDATION FAILED" validate.log
+
+# Check output directory issues
+grep -i "output.*directory" build.log validate.log
+```
+
+#### Log File Troubleshooting Tips
+
+- **Build fails early**: Check `build.log` for dependency or environment issues
+- **Build succeeds but validation fails**: Review `validate.log` for AppImage quality issues
+- **No AppImage created**: Search both logs for "appimagetool" or "linuxdeploy" errors
+- **CI/CD failures**: Download artifact logs for complete error context
+
 ### Qt6 Plugin Issues and Structure
 
 #### Required Qt6 Plugin Structure

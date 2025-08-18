@@ -2,6 +2,14 @@
 
 source common.sh
 
+# Set up logging - redirect stdout and stderr to both console and log file
+BUILD_LOG_FILE="build.log"
+exec > >(tee -a "$BUILD_LOG_FILE")
+exec 2> >(tee -a "$BUILD_LOG_FILE" >&2)
+
+echo "=== AppImage Build Started at $(date) ==="
+echo "Log file: $BUILD_LOG_FILE"
+
 QUIRKS_FILE=
 APP_DIR=${BUILD_DIR}/AppDir
 UPDATE_CMAKE_OPTIONS=""
@@ -432,4 +440,5 @@ else
 fi
 rm *.zsync
 
+echo "=== AppImage Build Completed Successfully at $(date) ==="
 cleanup_build
