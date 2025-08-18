@@ -4,6 +4,14 @@
 
 set -e
 
+# Set up logging - redirect stdout and stderr to both console and log file
+VALIDATION_LOG_FILE="validate.log"
+exec > >(tee -a "$VALIDATION_LOG_FILE")
+exec 2> >(tee -a "$VALIDATION_LOG_FILE" >&2)
+
+echo "=== AppImage Validation Started at $(date) ==="
+echo "Log file: $VALIDATION_LOG_FILE"
+
 SOURCE_DIR=${PWD}/source
 BUILD_DIR=${PWD}/build
 OUTPUT_DIR=${PWD}/output
@@ -1101,3 +1109,7 @@ done
 
 # Run main validation
 main "$@"
+validation_exit_code=$?
+
+echo "=== AppImage Validation Completed at $(date) ==="
+exit $validation_exit_code
