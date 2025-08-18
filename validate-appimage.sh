@@ -1109,5 +1109,7 @@ done
 
 # Run main validation
 main "$@"
+validation_exit_code=$?
 
 echo "=== AppImage Validation Completed at $(date) ==="
+exit $validation_exit_code
